@@ -1,0 +1,17 @@
+raw_data: ../raw_data/faa_vs_fTotal_2016.csv
+by_column:
+- 1
+- 2
+start_column: 3
+
+genotype_file: 
+SNPs_file: ../reference_files/SNPs_file.txt
+ecotype_file: ../reference_files/ecotype_id_info.csv
+protein_file: ../reference_files/protein_table_gff.csv
+
+output: ../output/
+
+genotypes:
+  A: 1
+  B: 2
+  H: 3
