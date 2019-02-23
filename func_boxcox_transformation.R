@@ -46,6 +46,14 @@ boxcox_transformation <- function(dat, by_column = c(1, 2), start_column = 3){
     dat[,start_column:ncol(dat)] <- dat[,start_column:ncol(dat)]^temp
   }
   
+  # Re-arrange first column
+  for (i in 1:length(by_column)) {
+    dat <- dat[order(as.numeric(gsub("[[:alpha:]]", "", dat[,i]))),]
+  }
+  
+  # Re-arrange row names
+  row.names(dat) <- seq(from = 1, to = nrow(dat), by = 1)
+  
   if(exists("lambda") & exists("dat")){
     return(list("Lambda_values" = lambda, "Boxcox_transformed_data" = dat))
   } else{

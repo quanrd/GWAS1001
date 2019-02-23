@@ -52,8 +52,9 @@ generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
     colnames(blup)[1] <- colnames(dat)[1]
     blup <- blup[order(as.numeric(gsub("[[:alpha:]]", "", blup[,1]))),]
     row.names(blup) <- seq(from = 1, to = nrow(blup), by = 1)
-  }
     
+  }
+  
   if(exists("blup")){
     return(list("BLUP" = blup))
   } else{

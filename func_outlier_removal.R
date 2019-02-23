@@ -50,6 +50,14 @@ outlier_removal <- function(dat, by_column = c(1, 2), start_column = 3){
     }
   }
   
+  # Re-arrange first column
+  for (i in 1:length(by_column)) {
+    dat <- dat[order(as.numeric(gsub("[[:alpha:]]", "", dat[,i]))),]
+  }
+  
+  # Re-arrange row names
+  row.names(dat) <- seq(from = 1, to = nrow(dat), by = 1)
+  
   # Return data
   if(exists("dat") & exists("outlier_dat") & exists("outliers_residuals")){
     return(list("Outlier_removed_data" = dat, "Outlier_data" = outlier_dat, "Outliers_residuals" = outliers_residuals))
