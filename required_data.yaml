@@ -1,19 +1,22 @@
-raw_data: ../raw_data/faa_vs_fTotal_2016.csv
+raw_data: ../raw_data/Arabidopsis_360/faa_vs_fTotal_2016.csv
 by_column:
 - 1
 - 2
 start_column: 3
 
-BLUP:
+BLUP: ../raw_data/Arabidopsis_360/BLUP_faa_vs_fTotal_2016.csv
 BLUP_by_column:
 - 1
-- 2
-BLUP_start_column: 3
+BLUP_start_column: 2
 
-genotype_file: 
-SNPs_file: ../reference_files/SNPs_file.txt
-ecotype_file: ../reference_files/ecotype_id_info.csv
-protein_file: ../reference_files/protein_table_gff.csv
+genotype: ../reference_files/Arabidopsis_360/FarmCPU/genotype.csv
+SNPs: ../reference_files/Arabidopsis_360/FarmCPU/SNPs.csv
+hapmap: ../reference_files/Arabidopsis_360/FarmCPU/hapmap_numeric.csv
+gff: ../reference_files/Arabidopsis_360/FarmCPU/gene.gff.csv
+ecotype: 
+
+FarmCPU_p_value_threshold: 4.67e-8
+FarmCPU_p_value_fdr_threshold: 0.01
 
 output: ../output/output1
 

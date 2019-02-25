@@ -1,6 +1,10 @@
 ## Clean the workspace
 rm(list = ls())
 
+# Set repository so that required packages can be diwnloaded
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
 
 ## Import library
 library(sparklyr)
@@ -9,6 +13,8 @@ library(yaml)
 library(data.table)
 library(lme4)
 library(car)
+library(DBI)
+library(gplots)
 library(bigmemory)
 library(biganalytics)
 require(compiler)
@@ -22,6 +28,7 @@ source("http://www.zzlab.net/FarmCPU/FarmCPU_functions.txt")
 #source("FarmCPU_functions.txt")
 
 # Source R files
+source("func_read_file.R")
 source("func_remove_duplicates.R")
 source("func_outlier_removal.R")
 source("func_boxcox_transformation.R")
@@ -31,6 +38,8 @@ source("func_farming_with_FarmCPU.R")
 
 ## Get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
+
+cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------")
 
 # Check if the YAML file path is in the args
 if (!identical(args, character(0)) &
@@ -50,186 +59,123 @@ if (!identical(args, character(0)) &
     if (exists("yaml_dat")) {
       
       ## Import raw data
-      if (!is.null(yaml_dat$raw_data)) {
-        if (file.exists(yaml_dat$raw_data)) {
-          if (endsWith(yaml_dat$raw_data, ".csv")) {
-            raw_data <-
-              try(read.csv(yaml_dat$raw_data,
-                           header = TRUE,
-                           stringsAsFactors = FALSE))
-          } else if (endsWith(yaml_dat$raw_data, ".txt")) {
-            raw_data <-
-              try(read.table(yaml_dat$raw_data,
-                             header = TRUE,
-                             stringsAsFactors = FALSE))
-          }
-        } else{
-          print("The raw data file does not exists.")
-        }
-      } else{
+      raw_data <- read_file(file_path = yaml_dat$raw_data)
+      if (is.null(raw_data)) {
         print("The raw_data parameter is NULL.")
+      } else{
+        print("raw_data has been loaded into memory.")
       }
       
       if (!is.null(yaml_dat$by_column)) {
         by_column <- yaml_dat$by_column
+        print(paste("by_column: ", by_column, sep = ""))
       } else{
         print("The by_column parameter is NULL.")
       }
       
       if (!is.null(yaml_dat$start_column)) {
         start_column <- yaml_dat$start_column
+        print(paste("start_column: ", start_column, sep = ""))
       } else{
         print("The start_column parameter is NULL.")
       }
       
       ## Import BULP data
-      if (!is.null(yaml_dat$BLUP)) {
-        if (file.exists(yaml_dat$BLUP)) {
-          if (endsWith(yaml_dat$BLUP, ".csv")) {
-            BLUP <-
-              try(read.csv(yaml_dat$BLUP,
-                           header = TRUE,
-                           stringsAsFactors = FALSE))
-          } else if (endsWith(yaml_dat$BLUP, ".txt")) {
-            BLUP <-
-              try(read.table(yaml_dat$BLUP,
-                             header = TRUE,
-                             stringsAsFactors = FALSE))
-          }
-        } else{
-          print("The raw data file does not exists.")
-        }
-      } else{
+      BLUP <- read_file(file_path = yaml_dat$BLUP)
+      if (is.null(BLUP)) {
         print("The BLUP parameter is NULL.")
+      } else{
+        print("BLUP has been loaded into memory.")
       }
       
       if (!is.null(yaml_dat$BLUP_by_column)) {
         BLUP_by_column <- yaml_dat$BLUP_by_column
+        print(paste("BLUP_by_column: ", BLUP_by_column, sep = ""))
       } else{
         print("The BLUP_by_column parameter is NULL.")
       }
       
       if (!is.null(yaml_dat$BLUP_start_column)) {
         BLUP_start_column <- yaml_dat$BLUP_start_column
+        print(paste("BLUP_start_column: ", BLUP_start_column, sep = ""))
       } else{
         print("The BLUP_start_column parameter is NULL.")
       }
       
       ## Import reference files
       # Genotype file
-      if (!is.null(yaml_dat$genotype_file)) {
-        if (file.exists(yaml_dat$genotype_file)) {
-          if (endsWith(yaml_dat$genotype_file, ".csv")) {
-            genotype_file <-
-              try(read.csv(
-                yaml_dat$genotype_file,
-                header = TRUE,
-                stringsAsFactors = FALSE
-              ))
-          } else if (endsWith(yaml_dat$genotype_file, ".txt")) {
-            genotype_file <-
-              try(read.table(
-                yaml_dat$genotype_file,
-                header = TRUE,
-                stringsAsFactors = FALSE
-              ))
-          }
-        } else{
-          print("The Genotype file does not exists.")
-        }
+      genotype <- read_file(file_path = yaml_dat$genotype)
+      if (is.null(genotype)) {
+        print("The genotype parameter is NULL.")
       } else{
-        print("The genotype_file parameter is NULL.")
+        print("genotype has been loaded into memory.")
       }
       
       # SNPs file
-      if (!is.null(yaml_dat$SNPs_file)) {
-        if (file.exists(yaml_dat$SNPs_file)) {
-          if (endsWith(yaml_dat$SNPs_file, ".csv")) {
-            SNPs_file <-
-              try(read.csv(yaml_dat$SNPs_file,
-                           header = TRUE,
-                           stringsAsFactors = FALSE))
-          } else if (endsWith(yaml_dat$SNPs_file, ".txt")) {
-            SNPs_file <-
-              try(read.table(yaml_dat$SNPs_file,
-                             header = TRUE,
-                             stringsAsFactors = FALSE))
-          }
-        } else{
-          print("The SNPs file does not exists.")
-        }
+      SNPs <- read_file(file_path = yaml_dat$SNPs)
+      if (is.null(SNPs)) {
+        print("The SNPs parameter is NULL.")
       } else{
-        print("The SNPs_file parameter is NULL.")
+        print("SNPs has been loaded into memory.")
+      }
+      
+      # Hapmap file
+      hapmap <- read_file(file_path = yaml_dat$hapmap)
+      if (is.null(hapmap)) {
+        print("The hapmap parameter is NULL.")
+      } else{
+        print("hapmap has been loaded into memory.")
+      }
+      
+      # gff file
+      gff <- read_file(file_path = yaml_dat$gff)
+      if (is.null(gff)) {
+        print("The gff parameter is NULL.")
+      } else{
+        print("gff has been loaded into memory.")
       }
       
       # Ecotype file
-      if (!is.null(yaml_dat$ecotype_file)) {
-        if (file.exists(yaml_dat$ecotype_file)) {
-          if (endsWith(yaml_dat$ecotype_file, ".csv")) {
-            ecotype_file <-
-              try(read.csv(
-                yaml_dat$ecotype_file,
-                header = TRUE,
-                stringsAsFactors = FALSE
-              ))
-          } else if (endsWith(yaml_dat$ecotype_file, ".txt")) {
-            ecotype_file <-
-              try(read.table(
-                yaml_dat$ecotype_file,
-                header = TRUE,
-                stringsAsFactors = FALSE
-              ))
-          }
-        } else{
-          print("The ecotype file does not exists.")
-        }
+      ecotype <- read_file(file_path = yaml_dat$ecotype)
+      if (is.null(ecotype)) {
+        print("The ecotype parameter is NULL.")
       } else{
-        print("The ecotype_file parameter is NULL.")
+        print("ecotype has been loaded into memory.")
       }
       
-      # Protein file
-      if (!is.null(yaml_dat$protein_file)) {
-        if (file.exists(yaml_dat$protein_file)) {
-          if (endsWith(yaml_dat$protein_file, ".csv")) {
-            protein_file <-
-              try(read.csv(
-                yaml_dat$protein_file,
-                header = TRUE,
-                stringsAsFactors = FALSE
-              ))
-          } else if (endsWith(yaml_dat$protein_file, ".txt")) {
-            protein_file <-
-              try(read.table(
-                yaml_dat$protein_file,
-                header = TRUE,
-                stringsAsFactors = FALSE
-              ))
-          }
-        } else{
-          print("The protein file does not exists.")
-        }
+      # FarmCPU filter threshold p_value_threshold and p_value_fdr_threshold
+      if (!is.null(yaml_dat$FarmCPU_p_value_threshold)) {
+        p_value_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_threshold)
+        print(paste("p_value_threshold: ", p_value_threshold, sep = ""))
       } else{
-        print("The protein_file parameter is NULL.")
+        print("The p_value_threshold parameter is NULL.")
+      }
+      if (!is.null(yaml_dat$FarmCPU_p_value_fdr_threshold)) {
+        p_value_fdr_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_fdr_threshold)
+        print(paste("p_value_fdr_threshold: ", p_value_fdr_threshold, sep = ""))
+      } else{
+        print("The p_value_fdr_threshold parameter is NULL.")
       }
       
       ## Create output folder
       if (!is.null(yaml_dat$output)) {
-        output <- file.path(yaml_dat$output)
-        if (!dir.exists(output)) {
-          dir.create(
-            path = output,
-            showWarnings = TRUE,
-            recursive = TRUE
-          )
+        if (!dir.exists(yaml_dat$output)) {
+          dir.create(path = yaml_dat$output, showWarnings = TRUE, recursive = TRUE)
+          if (dir.exists(yaml_dat$output)) {
+            output <- file.path(yaml_dat$output)
+          }
         } else{
+          output <- file.path(yaml_dat$output)
           print("The output folder exists.")
         }
       } else{
         print("The output parameter is NULL.")
+        quit(status = -1)
       }
       
     } else{
       print("The yaml data was not read into the work space!!!")
+      quit(status = -1)
     }
     
     #######################################################################
@@ -241,31 +187,20 @@ if (!identical(args, character(0)) &
       index <- match("-removeDuplicates", args)
       print(paste(index, ": removeDuplicates", sep = ""))
       
-      if (exists("raw_data") &
-          exists("by_column") &
-          exists("start_column") & dir.exists(output)) {
+      if (exists("raw_data") & exists("by_column") & exists("start_column") & dir.exists(output)) {
+        
         folder_path <- file.path(output, "removeDuplicates")
         
         if (!dir.exists(folder_path)) {
-          dir.create(
-            path = folder_path,
-            showWarnings = TRUE,
-            recursive = TRUE
-          )
+          dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
         } else{
           print("The removeDuplicates folder exists.")
         }
         
         # Using customized function to remove duplicates
-        raw_data <-
-          remove_duplicates(dat = raw_data, by_column = by_column)
+        raw_data <- remove_duplicates(dat = raw_data, by_column = by_column)
         
-        write.csv(
-          x = raw_data,
-          file = file.path(folder_path, "raw_data.csv"),
-          row.names = TRUE,
-          na = ""
-        )
+        write.csv(x = raw_data, file = file.path(folder_path, "raw_data.csv"), row.names = TRUE, na = "")
       }
     }
     
@@ -274,55 +209,29 @@ if (!identical(args, character(0)) &
       index <- match("-outlierRemoval", args)
       print(paste(index, ": outlierRemoval", sep = ""))
       
-      if (exists("raw_data") &
-          exists("by_column") &
-          exists("start_column") & dir.exists(output)) {
+      if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+        
         folder_path <- file.path(output, "outlierRemoval")
         
         if (!dir.exists(folder_path)) {
-          dir.create(
-            path = folder_path,
-            showWarnings = TRUE,
-            recursive = TRUE
-          )
+          dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
         } else{
           print("The outlierRemoval folder exists.")
         }
         
         # Using customized function to remove outliers
-        results <-
-          outlier_removal(dat = raw_data,
-                          by_column = by_column,
-                          start_column = start_column)
+        results <- outlier_removal(dat = raw_data, by_column = by_column, start_column = start_column)
         
         if (is.list(results)) {
           raw_data <- results$Outlier_removed_data
           
-          capture.output(
-            results$Outliers_residuals,
-            file = file.path(folder_path, "Outliers_residuals.txt")
-          )
-          write.csv(
-            x = results$Outlier_data,
-            file = file.path(folder_path, "Outlier_data.csv"),
-            row.names = FALSE,
-            na = ""
-          )
-          write.csv(
-            x = results$Outlier_removed_data,
-            file = file.path(folder_path, "Outlier_removed_data.csv"),
-            row.names = FALSE,
-            na = ""
-          )
+          capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
+          write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
+          write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
         } else{
           raw_data <- results
           
-          write.csv(
-            x = results,
-            file = file.path(folder_path, "Outlier_removed_data.csv"),
-            row.names = FALSE,
-            na = ""
-          )
+          write.csv(x = results, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
           print("No outlier has been found!!!")
         }
         
@@ -334,42 +243,24 @@ if (!identical(args, character(0)) &
       index <- match("-boxcoxTransformation", args)
       print(paste(index, ": boxcoxTransformation", sep = ""))
       
-      if (exists("raw_data") &
-          exists("by_column") &
-          exists("start_column") & dir.exists(output)) {
+      if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+        
         folder_path <- file.path(output, "boxcoxTransformation")
         
         if (!dir.exists(folder_path)) {
-          dir.create(
-            path = folder_path,
-            showWarnings = TRUE,
-            recursive = TRUE
-          )
+          dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
         } else{
           print("The boxcoxTransformation folder exists.")
         }
         
         # Using customized function to perform box-cox transformation
-        results <-
-          boxcox_transformation(dat = raw_data,
-                                by_column = by_column,
-                                start_column = start_column)
+        results <- boxcox_transformation(dat = raw_data, by_column = by_column, start_column = start_column)
         
         if (is.list(results)) {
           raw_data <- results$Boxcox_transformed_data
           
-          write.csv(
-            x = results$Lambda_values,
-            file = file.path(folder_path, "Lambda_values.csv"),
-            row.names = FALSE,
-            na = ""
-          )
-          write.csv(
-            x = results$Boxcox_transformed_data,
-            file = file.path(folder_path, "Boxcox_transformed_data.csv"),
-            row.names = FALSE,
-            na = ""
-          )
+          write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
+          write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
         } else{
           raw_data <- results
           
@@ -384,38 +275,26 @@ if (!identical(args, character(0)) &
       index <- match("-generateBLUP", args)
       print(paste(index, ": generateBLUP", sep = ""))
       
-      if (exists("raw_data") &
-          exists("by_column") &
-          exists("start_column") & dir.exists(output)) {
+      if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+        
         folder_path <- file.path(output, "generateBLUP")
         
         if (!dir.exists(folder_path)) {
-          dir.create(
-            path = folder_path,
-            showWarnings = TRUE,
-            recursive = TRUE
-          )
+          dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
         } else{
           print("The generateBLUP folder exists.")
         }
         
         # Using customized function to generate BLUP
         results <-
-          generate_BLUP(dat = raw_data,
-                        by_column = by_column,
-                        start_column = start_column)
+          generate_BLUP(dat = raw_data, by_column = by_column, start_column = start_column)
         
         if (is.list(results)) {
           BLUP <- results$BLUP
           BLUP_by_column <- 1
           BLUP_start_column <- 2
           
-          write.csv(
-            x = results$BLUP,
-            file = file.path(folder_path, "BLUP.csv"),
-            row.names = FALSE,
-            na = ""
-          )
+          write.csv( x = results$BLUP, file = file.path(folder_path, "BLUP.csv"), row.names = FALSE, na = "" )
         } else{
           print("No BLUP generated!!!")
         }
@@ -428,20 +307,14 @@ if (!identical(args, character(0)) &
       index <- match("-farmCPU", args)
       print(paste(index, ": farmCPU", sep = ""))
       
-      if (exists("BLUP") &
-          exists("BLUP_by_column") &
-          exists("BLUP_start_column") &
-          exists("genotype_file") & exists("SNPs_file") &
-          exists("ecotype_file") &
-          exists("protein_file") & dir.exists(output)) {
+      if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") & 
+          exists("genotype") & !is.null(genotype) & exists("SNPs") & !is.null(SNPs) & 
+          exists("hapmap") & !is.null(hapmap) & exists("gff") & !is.null(gff) & dir.exists(output)) {
+        
         folder_path <- file.path(output, "FarmCPU")
         
         if (!dir.exists(folder_path)) {
-          dir.create(
-            path = folder_path,
-            showWarnings = TRUE,
-            recursive = TRUE
-          )
+          dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
         } else{
           print("The FarmCPU folder exists.")
         }
@@ -453,10 +326,12 @@ if (!identical(args, character(0)) &
             by_column = BLUP_by_column,
             start_column = BLUP_start_column,
             output_path = folder_path,
-            genotype_file = genotype_file,
-            SNPs_file = SNPs_file,
-            ecotype_file = ecotype_file,
-            protein_file = protein_file
+            p_value_threshold = p_value_threshold, 
+            p_value_fdr_threshold = p_value_fdr_threshold,
+            genotype = genotype,
+            SNPs = SNPs,
+            hapmap = hapmap,
+            gff = gff
           )
         
       }
@@ -477,3 +352,5 @@ if (!identical(args, character(0)) &
 } else{
   print("YAML file does not exists!!!")
 }
+
+cat(rep("\n", 2));print("-------------------- GWAS1001 Stop --------------------")

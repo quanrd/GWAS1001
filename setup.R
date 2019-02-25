@@ -56,55 +56,37 @@ print(names(loaded_packages$otherPkgs))
 
 
 
-if(!dir.exists(file.path("..", "raw_data"))){
-  dir.create(file.path("..", "raw_data"))
-  if(dir.exists(file.path("..", "raw_data"))){
-    print("raw_data folder has been created!!!")
+foldernames <- c("raw_data", "reference_files", "output")
+for (i in 1:length(foldernames)) {
+  temp <- file.path("..", foldernames[i])
+  if(!dir.exists(temp)){
+    dir.create(temp)
+    if(dir.exists(temp)){
+      print(paste(foldernames[i], " folder has been created!!!", sep = ""))
+    } else{
+      print(paste(foldernames[i], " folder cannot be created!!!", sep = ""))
+    }
   } else{
-    print("raw_data folder cannot be created!!!")
+    print(paste(foldernames[i], " folder exists!!!", sep = ""))
   }
-} else{
-  print("raw_data folder exists!!!")
 }
 
-if(!dir.exists(file.path("..", "reference_files"))){
-  dir.create(file.path("..", "reference_files"))
-  if(dir.exists(file.path("..", "reference_files"))){
-    print("reference_files folder has been created!!!")
-  } else{
-    print("reference_files folder cannot be created!!!")
-  }
+filename <- "required_data.yaml"
+dat <- readLines(con = filename)
+writeLines(dat, con = file.path("..", filename))
+if (file.exists(file.path("..", filename))) {
+  print(paste(filename, " has been created!!!", sep = ""))
 } else{
-  print("reference_files folder exists!!!")
-}
-
-if(!dir.exists(file.path("..", "output"))){
-  dir.create(file.path("..", "output"))
-  if(dir.exists(file.path("..", "output"))){
-    print("output folder has been created!!!")
-  } else{
-    print("output folder cannot be created!!!")
-  }
-} else{
-  print("output folder exists!!!")
+  print(paste(filename, " cannot be created!!!", sep = ""))
 }
 
 
 
-dat <- readLines(con = "required_data.YAML")
-writeLines(dat, con = file.path("..", "required_data.YAML"))
-if (file.exists(file.path("..", "required_data.YAML"))) {
-  print("required_data.YAML has been created!!!")
+filename <- "raw_add_A.R"
+dat <- readLines(con = filename)
+writeLines(dat, con = file.path("..", "raw_data", filename))
+if (file.exists(file.path("..", "raw_data", filename))) {
+  print(paste(filename, " has been created!!!", sep = ""))
 } else{
-  print("required_data.YAML cannot be created!!!")
-}
-
-
-
-dat <- readLines(con = "raw_add_A.R")
-writeLines(dat, con = file.path("..", "raw_data", "raw_add_A.R"))
-if (file.exists(file.path("..", "raw_data", "raw_add_A.R"))) {
-  print("raw_add_A.R has been created!!!")
-} else{
-  print("raw_add_A.R cannot be created!!!")
+  print(paste(filename, " cannot be created!!!", sep = ""))
 }
