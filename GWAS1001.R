@@ -157,6 +157,14 @@ if (!identical(args, character(0)) &
         print("The p_value_fdr_threshold parameter is NULL.")
       }
       
+      # LD_number
+      if (!is.null(yaml_dat$FarmCPU_LD_number)) {
+        ld_number <- as.numeric(yaml_dat$FarmCPU_LD_number)
+        print(paste("ld_number: ", ld_number, sep = ""))
+      } else{
+        print("The ld_number parameter is NULL.")
+      }
+      
       ## Create output folder
       if (!is.null(yaml_dat$output)) {
         if (!dir.exists(yaml_dat$output)) {
@@ -309,7 +317,15 @@ if (!identical(args, character(0)) &
       
       if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") & 
           exists("genotype") & !is.null(genotype) & exists("SNPs") & !is.null(SNPs) & 
-          exists("hapmap") & !is.null(hapmap) & exists("gff") & !is.null(gff) & dir.exists(output)) {
+          exists("hapmap") & !is.null(hapmap) & exists("gff") & !is.null(gff) & 
+          exists("ld_number") & ld_number >= 0 & dir.exists(output)) {
+        
+        # Check BLUP file and genotype file
+        if (sum(match(BLUP[,1], genotype[,1]), na.rm = TRUE) == 0) {
+          print(paste0("Elements in ", colnames(BLUP)[1], " column of BLUP file does not able to match with any element in ", 
+                       colnames(genotype)[1], " column of genotype file."))
+          quit(status = -1)
+        }
         
         folder_path <- file.path(output, "FarmCPU")
         
@@ -328,6 +344,7 @@ if (!identical(args, character(0)) &
             output_path = folder_path,
             p_value_threshold = p_value_threshold, 
             p_value_fdr_threshold = p_value_fdr_threshold,
+            ld_number = ld_number, 
             genotype = genotype,
             SNPs = SNPs,
             hapmap = hapmap,
