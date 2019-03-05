@@ -30,7 +30,7 @@ boxcox_transformation <- function(dat, by_column = c(1, 2), start_column = 3){
   lambda <- list()
   
   # put lambdas in a list
-  for(i in names(transformed_out)){
+  for(i in names(transformed_out)) {
     # isolate the lambda for each column in dat saved in transformed_out
     lambda[[i]] <- (transformed_out[[i]]$lambda)
   }
@@ -54,7 +54,7 @@ boxcox_transformation <- function(dat, by_column = c(1, 2), start_column = 3){
   # Re-arrange row names
   row.names(dat) <- seq(from = 1, to = nrow(dat), by = 1)
   
-  if(exists("lambda") & length(lambda) > 0 & exists("dat")){
+  if(exists("lambda") & length(lambda) > 0 & exists("dat")) {
     return(list("Lambda_values" = lambda, "Boxcox_transformed_data" = dat))
   } else{
     return(dat)
