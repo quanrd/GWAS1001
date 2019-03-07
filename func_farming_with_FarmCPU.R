@@ -100,9 +100,50 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     temp_gwas_result$LD_number <- ld_number
     temp_gwas_result$LD_start <- temp_gwas_result$Position-ld_number
     temp_gwas_result$LD_end <- temp_gwas_result$Position+ld_number
-    
+
+    for(j in 1:nrow(temp_gwas_result)){
+
+      if(!is.na(temp_gwas_result$LD_start[j]) & !is.na(temp_gwas_result$LD_end[j])){
+
+        # Create a temporary hapmap from chromosome, LD start, and LD stop
+        temp_hapmap <- hapmap[(hapmap$Positions >= temp_gwas_result$LD_start[j] & 
+                              hapmap$Positions <= temp_gwas_result$LD_end[j] & 
+                              hapmap$Chromosome == temp_gwas_result$Chromosome[j]), ]
+
+        # If column names are integer, the system will append "X" in front of each column name
+        # This step is to remove the "X" from all integer column names
+        if(all(startsWith(colnames(temp_hapmap)[3:ncol(temp_hapmap)], "X"))){
+          colnames(temp_hapmap)[3:ncol(temp_hapmap)] <- gsub("[[:alpha:]]", "", colnames(temp_hapmap)[3:ncol(temp_hapmap)])
+        }
+
+        if(nrow(temp_hapmap) > 0){
+          # Put positions to info file
+          info <- data.frame(temp_hapmap$Positions, temp_hapmap$Positions)
+
+          # Remove Chromosome and Positions columns
+          temp_hapmap <- temp_hapmap[, c(-1, -2)]
+
+          ibd <- paste("IBD",1:ncol(temp_hapmap), sep = "")
+
+          ped <- rbind(temp_hapmap[0,], ibd, 0, 0, 7, 1, temp_hapmap[c(1:nrow(temp_hapmap)),])
+          ped <- t(ped)
+
+          filename <- paste0(temp_gwas_result$Trait[j], "_", temp_gwas_result$SNP_ID[j], "_", 
+                            temp_gwas_result$Chromosome[j], "_", temp_gwas_result$LD_start[j], "-", 
+                            temp_gwas_result$LD_end[j])
+          
+          ped_file_name <- paste0(filename, ".ped")
+          info_file_name <- paste0(filename, ".info")
+
+          write.table(info, file.path(ped_and_info_save_path, ped_file_name), sep = '\t', row.names = FALSE, col.names = FALSE, quote=FALSE)
+          write.table(ped, file.path(ped_and_info_save_path, info_file_name), sep = '\t', row.names = TRUE, col.names = FALSE, quote=FALSE)
+        }
+
+      }
+    }
+
     temp_gwas_result_row_number <- nrow(temp_gwas_result)
-    
+
     gwas_result_list[[i]] <- temp_gwas_result
   }
   

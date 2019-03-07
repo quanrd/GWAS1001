@@ -1,7 +1,7 @@
 ## Clean the workspace
 rm(list = ls())
 
-# Set repository so that required packages can be diwnloaded
+# Set repository so that required packages can be downloaded
 r = getOption("repos")
 r["CRAN"] = "http://cran.us.r-project.org"
 options(repos = r)
