@@ -17,6 +17,7 @@ library(DBI)
 library(gplots)
 library(bigmemory)
 library(biganalytics)
+library(DataCombine)
 require(compiler)
 
 #Import GAPIT

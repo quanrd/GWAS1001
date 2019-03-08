@@ -6,7 +6,7 @@ rm(list = ls())
 # Gather required packages
 packages <- c("bigmemory", "biganalytics", "BiocManager", 
              "curl", "compiler", "car", 
-             "data.table", "devtools", 
+             "data.table", "devtools", "DataCombine", 
              "httr", 
              "lme4", 
              "rvest", 

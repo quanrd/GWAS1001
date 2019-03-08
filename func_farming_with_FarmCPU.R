@@ -100,8 +100,13 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     temp_gwas_result$LD_number <- ld_number
     temp_gwas_result$LD_start <- temp_gwas_result$Position-ld_number
     temp_gwas_result$LD_end <- temp_gwas_result$Position+ld_number
+    temp_gwas_result$Haploblock_Number <- NA
+    temp_gwas_result$Haploblock_Start <- NA
+    temp_gwas_result$Haploblock_Stop <- NA
 
-    for(j in 1:nrow(temp_gwas_result)){
+    # For each row in each table
+    j <- 1
+    while(j <= nrow(temp_gwas_result)){
 
       if(!is.na(temp_gwas_result$LD_start[j]) & !is.na(temp_gwas_result$LD_end[j])){
 
@@ -123,26 +128,96 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
           # Remove Chromosome and Positions columns
           temp_hapmap <- temp_hapmap[, c(-1, -2)]
 
+          # Prepare ped file
           ibd <- paste("IBD",1:ncol(temp_hapmap), sep = "")
-
           ped <- rbind(temp_hapmap[0,], ibd, 0, 0, 7, 1, temp_hapmap[c(1:nrow(temp_hapmap)),])
           ped <- t(ped)
 
           filename <- paste0(temp_gwas_result$Trait[j], "_", temp_gwas_result$SNP_ID[j], "_", 
                             temp_gwas_result$Chromosome[j], "_", temp_gwas_result$LD_start[j], "-", 
                             temp_gwas_result$LD_end[j])
-          
+
+          # Name ped and info file
           ped_file_name <- paste0(filename, ".ped")
           info_file_name <- paste0(filename, ".info")
 
-          write.table(info, file.path(ped_and_info_save_path, ped_file_name), sep = '\t', row.names = FALSE, col.names = FALSE, quote=FALSE)
-          write.table(ped, file.path(ped_and_info_save_path, info_file_name), sep = '\t', row.names = TRUE, col.names = FALSE, quote=FALSE)
-        }
+          # Save info and ped file
+          write.table(info, file.path(ped_and_info_save_path, info_file_name), sep = '\t', row.names = FALSE, col.names = FALSE, quote=FALSE)
+          write.table(ped, file.path(ped_and_info_save_path, ped_file_name), sep = '\t', row.names = TRUE, col.names = FALSE, quote=FALSE)
+        
+          # Prepare the Haploview command
+          ld_data_command <- paste("java -jar ", file.path(current_working_directory, "Haploview.jar"), 
+                                   " -n -out ", file.path(ld_data_save_path, filename), 
+                                   " -pedfile ", file.path(ped_and_info_save_path, ped_file_name), 
+                                   " -info ", file.path(ped_and_info_save_path, info_file_name), 
+                                   " -skipcheck -dprime -png -ldcolorscheme DEFAULT -ldvalues DPRIME -blockoutput GAB -minMAF 0.05", 
+                                   sep = "")
+          
+          # Run Haploview
+          system(ld_data_command)
 
+          # Move all the plots into their specific folders
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD.PNG", sep = "")))){
+            system(paste("mv", file.path(ld_data_save_path, paste(filename, ".LD.PNG", sep = "")), ld_plot_save_path, sep = " "))
+          }
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".GABRIELblocks", sep = "")))){
+            system(paste("mv", file.path(ld_data_save_path, paste(filename, ".GABRIELblocks", sep = "")), haplotypes_gabriel_blocks_save_path, sep = " "))
+          }
+
+          # Read in LD_data and gabriel_block_string
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD", sep = "")))){
+            LD_data <- try(read.table(file.path(ld_data_save_path, paste(filename, ".LD", sep = "")), check.names = FALSE, header = TRUE))
+          }
+          if(file.exists(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = "")))){
+            gabriel_block_string <- try(readLines(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = ""))))
+          }
+
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD", sep = ""))) & 
+            file.exists(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = ""))) & 
+            !identical(gabriel_block_string, character(0))){
+
+            # Get Haploblock start and stop
+            ld <- sort(unique(c(LD_data[,1], LD_data[,2])))
+
+            # Parse gabriel blocks data
+            gbb <- list()
+            for (k in 1:length(gabriel_block_string)) {
+              if(grepl("MARKERS: ", gabriel_block_string[k], ignore.case = TRUE)){
+                gbb <- append(gbb, strsplit(x = gsub(".*MARKERS: ", "" , gabriel_block_string[k]), split = " "))
+              }
+            }
+
+            # Get all the start and stop of markers from ld and gbb
+            for(m in 1:length(gbb)){
+              for (n in 1:length(gbb[[m]])) {
+                gbb[[m]][n] <- as.numeric(ld[as.integer(gbb[[m]][n])])
+              }
+            }
+
+            # Put all the markers start and stop to the gwas results
+            for(m in 1:length(gbb)){
+              if(m == 1){
+                temp_gwas_result$Haploblock_Number[j] <- as.numeric(length(gbb))
+                temp_gwas_result$Haploblock_Start[j] <- as.numeric(gbb[[m]][1])
+                temp_gwas_result$Haploblock_Stop[j] <- as.numeric(gbb[[m]][length(gbb[[m]])])
+              } else if(m > 1){
+                temp_gwas_result <- InsertRow(temp_gwas_result, NewRow = temp_gwas_result[j,], RowNum = j+1)
+                j = j + 1
+                temp_gwas_result$Haploblock_Number[j] <- as.numeric(length(gbb))
+                temp_gwas_result$Haploblock_Start[j] <- as.numeric(gbb[[m]][1])
+                temp_gwas_result$Haploblock_Stop[j] <- as.numeric(gbb[[m]][length(gbb[[m]])])
+              }
+            }
+          }
+        }
       }
+
+      # Update counter for the while loop
+      j = j + 1
     }
 
-    temp_gwas_result_row_number <- nrow(temp_gwas_result)
+    # Remove any row that contains all NA
+    temp_gwas_result <- temp_gwas_result[rowSums(is.na(temp_gwas_result)) != ncol(temp_gwas_result),]
 
     gwas_result_list[[i]] <- temp_gwas_result
   }
