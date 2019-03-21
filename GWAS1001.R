@@ -48,6 +48,7 @@ source("func_outlier_removal.R")
 source("func_boxcox_transformation.R")
 source("func_generate_BLUP.R")
 source("func_farming_with_FarmCPU.R")
+source("func_farming_with_GAPIT.R")
 
 
 ## Get command line arguments
@@ -130,6 +131,38 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("The GAPIT_hapmap parameter is NULL.")
       } else{
         print("GAPIT_hapmap has been loaded into memory.")
+      }
+
+      # GAPIT kinship matrix
+      GAPIT_kinship_matrix <- read_file(file_path = yaml_dat$GAPIT_kinship_matrix)
+      if (is.null(GAPIT_kinship_matrix)) {
+        print("The GAPIT_kinship_matrix parameter is NULL.")
+      } else{
+        print("GAPIT_kinship_matrix has been loaded into memory.")
+      }
+
+      # GAPIT covariates
+      GAPIT_covariates <- read_file(file_path = yaml_dat$GAPIT_covariates)
+      if (is.null(GAPIT_covariates)) {
+        print("The GAPIT_covariates parameter is NULL.")
+      } else{
+        print("GAPIT_covariates has been loaded into memory.")
+      }
+
+      # GAPIT genotype data (numeric)
+      GAPIT_genotype_data_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_data_numeric)
+      if (is.null(GAPIT_genotype_data_numeric)) {
+        print("The GAPIT_genotype_data_numeric parameter is NULL.")
+      } else{
+        print("GAPIT_genotype_data_numeric has been loaded into memory.")
+      }
+
+      # GAPIT genotype map (numeric)
+      GAPIT_genotype_map_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_map_numeric)
+      if (is.null(GAPIT_genotype_map_numeric)) {
+        print("The GAPIT_genotype_map_numeric parameter is NULL.")
+      } else{
+        print("GAPIT_genotype_map_numeric has been loaded into memory.")
       }
 
       # GAPIT model
@@ -365,25 +398,38 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         
       }
     }
-    
+
     # GAPIT
-    if (all("-gapit" %in% args)) {
-      index <- match("-gapit", args)
-      print(paste(index, ": gapit", sep = ""))
+    if (all("-GAPIT" %in% args)) {
+      index <- match("-GAPIT", args)
+      print(paste(index, ": GAPIT", sep = ""))
 
       if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") & 
-          exists("GAPIT_hapmap") & !is.null(GAPIT_hapmap) & 
+          exists("GAPIT_model") & !is.null(GAPIT_model) & 
           exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) & 
           exists("GAPIT_LD_number") & GAPIT_LD_number >= 0 & dir.exists(output)) {
-            
+
         folder_path <- file.path(output, "GAPIT")
-        
+
         if (!dir.exists(folder_path)) {
           dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
         } else{
           print("The GAPIT folder exists.")
         }
 
+        # Using customized function to run GAPIT
+        results <-
+          farming_with_GAPIT(
+            dat = BLUP,
+            by_column = BLUP_by_column,
+            start_column = BLUP_start_column,
+            output_path = folder_path,
+            model = GAPIT_model,
+            p_value_fdr_threshold = GAPIT_p_value_fdr_threshold,
+            ld_number = GAPIT_LD_number, 
+            hapmap_numeric = hapmap_numeric,
+            gff = gff
+          )
       }
     }
 
@@ -412,7 +458,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
           print("The FarmCPU folder exists.")
         }
         
-        # Using customized function to generate BLUP
+        # Using customized function to run FarmCPU
         results <-
           farming_with_FarmCPU(
             dat = BLUP,
@@ -429,12 +475,6 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
           )
         
       }
-    }
-    
-    # GAPIT
-    if (all("-GAPIT" %in% args)) {
-      index <- match("-GAPIT", args)
-      print(paste(index, ": GAPIT", sep = ""))
     }
     
   } else{

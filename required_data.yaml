@@ -13,6 +13,10 @@ BLUP_start_column: 2
 
 # Gapit
 GAPIT_hapmap:
+GAPIT_kinship_matrix:
+GAPIT_covariates:
+GAPIT_genotype_data_numeric:
+GAPIT_genotype_map_numeric:
 GAPIT_model: GLM
 GAPIT_p_value_fdr_threshold: 0.01
 GAPIT_LD_number: 5000
