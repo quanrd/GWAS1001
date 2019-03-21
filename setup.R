@@ -3,16 +3,26 @@ rm(list = ls())
 
 
 
+# Set repository so that required packages can be downloaded
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+
+
+
 # Gather required packages
-packages <- c("bigmemory", "biganalytics", "BiocManager", 
-             "curl", "compiler", "car", 
-             "data.table", "devtools", "DataCombine", 
-             "httr", 
-             "lme4", 
-             "rvest", 
-             "sparklyr", 
-             "tidyverse", 
-             "yaml")
+packages <- c("ape", 
+              "bigmemory", "biganalytics", "BiocManager", 
+              "curl", "compiler", "car", 
+              "data.table", "devtools", "DataCombine", "DBI", 
+              "EMMREML", 
+              "genetics", "gplots", 
+              "httr", 
+              "lme4", 
+              "rvest", 
+              "scatterplot3d", "sparklyr", 
+              "tidyverse", 
+              "yaml")
 
 # Check packages and install them if needed
 invisible(lapply(packages, FUN = function(x){
@@ -56,7 +66,8 @@ print(names(loaded_packages$otherPkgs))
 
 
 
-foldernames <- c("raw_data", "reference_files", "output")
+# Create these folders
+foldernames <- c("raw_data", "BLUP_BLUE", "reference_files", "output")
 for (i in 1:length(foldernames)) {
   temp <- file.path("..", foldernames[i])
   if(!dir.exists(temp)){
@@ -71,6 +82,9 @@ for (i in 1:length(foldernames)) {
   }
 }
 
+
+
+# Create this yaml file 
 filename <- "required_data.yaml"
 dat <- readLines(con = filename)
 writeLines(dat, con = file.path("..", filename))
@@ -82,6 +96,7 @@ if (file.exists(file.path("..", filename))) {
 
 
 
+# Copy this file into raw directory
 filename <- "raw_add_A.R"
 dat <- readLines(con = filename)
 writeLines(dat, con = file.path("..", "raw_data", filename))
@@ -90,3 +105,4 @@ if (file.exists(file.path("..", "raw_data", filename))) {
 } else{
   print(paste(filename, " cannot be created!!!", sep = ""))
 }
+

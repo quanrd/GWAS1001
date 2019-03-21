@@ -2,7 +2,7 @@
 ## farming with FarmCPU
 farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_path, 
                                  p_value_threshold = NA, p_value_fdr_threshold = NA, ld_number = 0, 
-                                 genotype, SNPs, hapmap, gff) {
+                                 genotype, SNPs, hapmap_numeric, gff) {
   
   #######################################################################
   ## Create folders to store outputs
@@ -108,36 +108,36 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     j <- 1
     while(j <= nrow(temp_gwas_result)){
 
-      # Clear temp_hapmap because we might use it later
-      temp_hapmap <- data.frame()
+      # Clear temp_hapmap_numeric because we might use it later
+      temp_hapmap_numeric <- data.frame()
 
       if(!is.na(temp_gwas_result$LD_start[j]) & !is.na(temp_gwas_result$LD_end[j])){
 
-        # Change colnames of Hapmap
-        colnames(hapmap)[1] <- "Chromosome"
-        colnames(hapmap)[2] <- "Positions"
+        # Change colnames of hapmap_numeric
+        colnames(hapmap_numeric)[1] <- "Chromosome"
+        colnames(hapmap_numeric)[2] <- "Positions"
 
-        # Create a temporary hapmap from chromosome, LD start, and LD stop
-        temp_hapmap <- hapmap[(hapmap$Positions >= temp_gwas_result$LD_start[j] & 
-                              hapmap$Positions <= temp_gwas_result$LD_end[j] & 
-                              hapmap$Chromosome == temp_gwas_result$Chromosome[j]), ]
+        # Create a temporary hapmap_numeric from chromosome, LD start, and LD stop
+        temp_hapmap_numeric <- hapmap_numeric[(hapmap_numeric$Positions >= temp_gwas_result$LD_start[j] & 
+                              hapmap_numeric$Positions <= temp_gwas_result$LD_end[j] & 
+                              hapmap_numeric$Chromosome == temp_gwas_result$Chromosome[j]), ]
 
         # If column names are integer, the system will append "X" in front of each column name
         # This step is to remove the "X" from all integer column names
-        if(all(startsWith(colnames(temp_hapmap)[3:ncol(temp_hapmap)], "X"))){
-          colnames(temp_hapmap)[3:ncol(temp_hapmap)] <- gsub("[[:alpha:]]", "", colnames(temp_hapmap)[3:ncol(temp_hapmap)])
+        if(all(startsWith(colnames(temp_hapmap_numeric)[3:ncol(temp_hapmap_numeric)], "X"))){
+          colnames(temp_hapmap_numeric)[3:ncol(temp_hapmap_numeric)] <- gsub("[[:alpha:]]", "", colnames(temp_hapmap_numeric)[3:ncol(temp_hapmap_numeric)])
         }
 
-        if(nrow(temp_hapmap) > 0){
+        if(nrow(temp_hapmap_numeric) > 0){
           # Put positions to info file
-          info <- data.frame(temp_hapmap$Positions, temp_hapmap$Positions)
+          info <- data.frame(temp_hapmap_numeric$Positions, temp_hapmap_numeric$Positions)
 
           # Remove Chromosome and Positions columns
-          temp_hapmap <- temp_hapmap[, c(-1, -2)]
+          temp_hapmap_numeric <- temp_hapmap_numeric[, c(-1, -2)]
 
           # Prepare ped file
-          ibd <- paste("IBD",1:ncol(temp_hapmap), sep = "")
-          ped <- rbind(temp_hapmap[0,], ibd, 0, 0, 7, 1, temp_hapmap[c(1:nrow(temp_hapmap)),])
+          ibd <- paste("IBD",1:ncol(temp_hapmap_numeric), sep = "")
+          ped <- rbind(temp_hapmap_numeric[0,], ibd, 0, 0, 7, 1, temp_hapmap_numeric[c(1:nrow(temp_hapmap_numeric)),])
           ped <- t(ped)
 
           filename <- paste0(temp_gwas_result$Trait[j], "_", temp_gwas_result$SNP_ID[j], "_", 
@@ -362,5 +362,9 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     write.csv(gwas_result_list[[i]], file.path(farmCPU_significant_save_path, gwas_result_filename), row.names = FALSE)
   }
   
+  combined_gwas_result <- rbindlist(gwas_result_list)
+  gwas_result_filename <- paste("FarmCPU.combined.GWAS.Results.csv", sep = "")
+  write.csv(combined_gwas_result, file.path(getwd(), output_path, gwas_result_filename), row.names = FALSE)
+
   return(0)
 }

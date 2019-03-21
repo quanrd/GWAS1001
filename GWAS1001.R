@@ -1,24 +1,37 @@
 ## Clean the workspace
 rm(list = ls())
 
+
 # Set repository so that required packages can be downloaded
 r = getOption("repos")
 r["CRAN"] = "http://cran.us.r-project.org"
 options(repos = r)
 
+
 ## Import library
+library(ape)
+library(bigmemory)
+library(biganalytics)
+library(car)
+library(data.table)
+library(DataCombine)
+library(DBI)
+library(EMMREML)
+library(genetics)
+library(gplots)
+library(lme4)
+# library(LDheatmap)
+library(multtest)
+library(scatterplot3d)
 library(sparklyr)
 library(tidyverse)
 library(yaml)
-library(data.table)
-library(lme4)
-library(car)
-library(DBI)
-library(gplots)
-library(bigmemory)
-library(biganalytics)
-library(DataCombine)
+
 require(compiler)
+
+
+#Import GAPIT Library
+source("http://www.zzlab.net/GAPIT/GAPIT.library.R")
 
 #Import GAPIT
 source("http://www.zzlab.net/GAPIT/gapit_functions.txt")
@@ -43,15 +56,22 @@ args <- commandArgs(trailingOnly = TRUE)
 cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------")
 
 # Check if the YAML file path is in the args
-if (!identical(args, character(0)) &
-    length(args) > 0 & file.exists(file.path(args[1]))) {
+if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(args[1]))) {
+
   print("YAML file exists!!!")
   
+  # If there are more than one argument
   if (length(args) > 1) {
+
     print(args[2:length(args)])
     
     ## Import configuration file and read in raw data and reference files
-    yaml_dat <- try(read_yaml(file.path(args[1])))
+    yaml_dat <- tryCatch({ 
+                  read_yaml(file.path(args[1])) 
+                }, error = function(e) { 
+                  print("The yaml file is invalid!!!")
+                  quit(status = -1)
+                })
     
     #######################################################################
     ## Read in all file and data that are specified in the YAML file
@@ -103,67 +123,102 @@ if (!identical(args, character(0)) &
         print("The BLUP_start_column parameter is NULL.")
       }
       
-      ## Import reference files
-      # Genotype file
-      genotype <- read_file(file_path = yaml_dat$genotype)
-      if (is.null(genotype)) {
-        print("The genotype parameter is NULL.")
+      ## Import GAPIT reference files
+      # GAPIT hapmap file
+      GAPIT_hapmap <- read_file(file_path = yaml_dat$GAPIT_hapmap)
+      if (is.null(GAPIT_hapmap)) {
+        print("The GAPIT_hapmap parameter is NULL.")
       } else{
-        print("genotype has been loaded into memory.")
+        print("GAPIT_hapmap has been loaded into memory.")
+      }
+
+      # GAPIT model
+      if (!is.null(yaml_dat$GAPIT_model)) {
+        GAPIT_model <- yaml_dat$GAPIT_model
+        print(paste("GAPIT_model: ", GAPIT_model, sep = ""))
+      } else{
+        print("The GAPIT_model parameter is NULL.")
+      }
+
+      # GAPIT p.Value FDR threshold
+      if (!is.null(yaml_dat$GAPIT_p_value_fdr_threshold)) {
+        GAPIT_p_value_fdr_threshold <- as.numeric(yaml_dat$GAPIT_p_value_fdr_threshold)
+        print(paste("GAPIT_p_value_fdr_threshold: ", GAPIT_p_value_fdr_threshold, sep = ""))
+      } else{
+        print("The GAPIT_p_value_fdr_threshold parameter is NULL.")
       }
       
-      # SNPs file
-      SNPs <- read_file(file_path = yaml_dat$SNPs)
-      if (is.null(SNPs)) {
-        print("The SNPs parameter is NULL.")
+      # GAPIT LD_number
+      if (!is.null(yaml_dat$GAPIT_LD_number)) {
+        GAPIT_LD_number <- as.numeric(yaml_dat$GAPIT_LD_number)
+        print(paste("GAPIT_LD_number: ", GAPIT_LD_number, sep = ""))
       } else{
-        print("SNPs has been loaded into memory.")
+        print("The GAPIT_LD_number parameter is NULL.")
+      }
+
+      ## Import FarmCPU reference files
+      # FarmCPU genotype file
+      FarmCPU_genotype <- read_file(file_path = yaml_dat$FarmCPU_genotype)
+      if (is.null(FarmCPU_genotype)) {
+        print("The FarmCPU_genotype parameter is NULL.")
+      } else{
+        print("FarmCPU_genotype has been loaded into memory.")
       }
       
-      # Hapmap file
-      hapmap <- read_file(file_path = yaml_dat$hapmap)
-      if (is.null(hapmap)) {
-        print("The hapmap parameter is NULL.")
+      # FarmCPU SNPs file
+      FarmCPU_SNPs <- read_file(file_path = yaml_dat$FarmCPU_SNPs)
+      if (is.null(FarmCPU_SNPs)) {
+        print("The FarmCPU_SNPs parameter is NULL.")
       } else{
-        print("hapmap has been loaded into memory.")
+        print("FarmCPU_SNPs has been loaded into memory.")
       }
       
+      # FarmCPU ecotype file
+      FarmCPU_ecotype <- read_file(file_path = yaml_dat$FarmCPU_ecotype)
+      if (is.null(FarmCPU_ecotype)) {
+        print("The FarmCPU_ecotype parameter is NULL.")
+      } else{
+        print("FarmCPU_ecotype has been loaded into memory.")
+      }
+      
+      # FarmCPU filter threshold p_value_threshold and p_value_fdr_threshold
+      if (!is.null(yaml_dat$FarmCPU_p_value_threshold)) {
+        FarmCPU_p_value_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_threshold)
+        print(paste("FarmCPU_p_value_threshold: ", FarmCPU_p_value_threshold, sep = ""))
+      } else{
+        print("The FarmCPU_p_value_threshold parameter is NULL.")
+      }
+      if (!is.null(yaml_dat$FarmCPU_p_value_fdr_threshold)) {
+        FarmCPU_p_value_fdr_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_fdr_threshold)
+        print(paste("FarmCPU_p_value_fdr_threshold: ", FarmCPU_p_value_fdr_threshold, sep = ""))
+      } else{
+        print("The FarmCPU_p_value_fdr_threshold parameter is NULL.")
+      }
+      
+      # FarmCPU LD_number
+      if (!is.null(yaml_dat$FarmCPU_LD_number)) {
+        FarmCPU_LD_number <- as.numeric(yaml_dat$FarmCPU_LD_number)
+        print(paste("FarmCPU_LD_number: ", FarmCPU_LD_number, sep = ""))
+      } else{
+        print("The FarmCPU_LD_number parameter is NULL.")
+      }
+
+      ## Haploview
+      # Hapmap_numeric file
+      hapmap_numeric <- read_file(file_path = yaml_dat$hapmap_numeric)
+      if (is.null(hapmap_numeric)) {
+        print("The hapmap_numeric parameter is NULL.")
+      } else{
+        print("hapmap_numeric has been loaded into memory.")
+      }
+      
+      ## Match Gene Start and Gene Stop
       # gff file
       gff <- read_file(file_path = yaml_dat$gff)
       if (is.null(gff)) {
         print("The gff parameter is NULL.")
       } else{
         print("gff has been loaded into memory.")
-      }
-      
-      # Ecotype file
-      ecotype <- read_file(file_path = yaml_dat$ecotype)
-      if (is.null(ecotype)) {
-        print("The ecotype parameter is NULL.")
-      } else{
-        print("ecotype has been loaded into memory.")
-      }
-      
-      # FarmCPU filter threshold p_value_threshold and p_value_fdr_threshold
-      if (!is.null(yaml_dat$FarmCPU_p_value_threshold)) {
-        p_value_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_threshold)
-        print(paste("p_value_threshold: ", p_value_threshold, sep = ""))
-      } else{
-        print("The p_value_threshold parameter is NULL.")
-      }
-      if (!is.null(yaml_dat$FarmCPU_p_value_fdr_threshold)) {
-        p_value_fdr_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_fdr_threshold)
-        print(paste("p_value_fdr_threshold: ", p_value_fdr_threshold, sep = ""))
-      } else{
-        print("The p_value_fdr_threshold parameter is NULL.")
-      }
-      
-      # LD_number
-      if (!is.null(yaml_dat$FarmCPU_LD_number)) {
-        ld_number <- as.numeric(yaml_dat$FarmCPU_LD_number)
-        print(paste("ld_number: ", ld_number, sep = ""))
-      } else{
-        print("The ld_number parameter is NULL.")
       }
       
       ## Create output folder
@@ -311,20 +366,41 @@ if (!identical(args, character(0)) &
       }
     }
     
+    # GAPIT
+    if (all("-gapit" %in% args)) {
+      index <- match("-gapit", args)
+      print(paste(index, ": gapit", sep = ""))
+
+      if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") & 
+          exists("GAPIT_hapmap") & !is.null(GAPIT_hapmap) & 
+          exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) & 
+          exists("GAPIT_LD_number") & GAPIT_LD_number >= 0 & dir.exists(output)) {
+            
+        folder_path <- file.path(output, "GAPIT")
+        
+        if (!dir.exists(folder_path)) {
+          dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+        } else{
+          print("The GAPIT folder exists.")
+        }
+
+      }
+    }
+
     # FarmCPU
     if (all("-farmCPU" %in% args)) {
       index <- match("-farmCPU", args)
       print(paste(index, ": farmCPU", sep = ""))
       
       if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") & 
-          exists("genotype") & !is.null(genotype) & exists("SNPs") & !is.null(SNPs) & 
-          exists("hapmap") & !is.null(hapmap) & exists("gff") & !is.null(gff) & 
-          exists("ld_number") & ld_number >= 0 & dir.exists(output)) {
+          exists("FarmCPU_genotype") & !is.null(FarmCPU_genotype) & exists("FarmCPU_SNPs") & !is.null(FarmCPU_SNPs) & 
+          exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) & 
+          exists("FarmCPU_LD_number") & FarmCPU_LD_number >= 0 & dir.exists(output)) {
         
         # Check BLUP file and genotype file
-        if (sum(match(BLUP[,1], genotype[,1]), na.rm = TRUE) == 0) {
+        if (sum(match(BLUP[,1], FarmCPU_genotype[,1]), na.rm = TRUE) == 0) {
           print(paste0("Elements in ", colnames(BLUP)[1], " column of BLUP file does not able to match with any element in ", 
-                       colnames(genotype)[1], " column of genotype file."))
+                       colnames(FarmCPU_genotype)[1], " column of genotype file."))
           quit(status = -1)
         }
         
@@ -343,12 +419,12 @@ if (!identical(args, character(0)) &
             by_column = BLUP_by_column,
             start_column = BLUP_start_column,
             output_path = folder_path,
-            p_value_threshold = p_value_threshold, 
-            p_value_fdr_threshold = p_value_fdr_threshold,
-            ld_number = ld_number, 
-            genotype = genotype,
-            SNPs = SNPs,
-            hapmap = hapmap,
+            p_value_threshold = FarmCPU_p_value_threshold, 
+            p_value_fdr_threshold = FarmCPU_p_value_fdr_threshold,
+            ld_number = FarmCPU_LD_number, 
+            genotype = FarmCPU_genotype,
+            SNPs = FarmCPU_SNPs,
+            hapmap_numeric = hapmap_numeric,
             gff = gff
           )
         
