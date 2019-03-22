@@ -54,7 +54,7 @@ source("func_farming_with_GAPIT.R")
 ## Get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 
-cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------")
+cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------");cat(rep("\n", 2));
 
 # Check if the YAML file path is in the args
 if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(args[1]))) {
@@ -80,6 +80,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
     
     if (exists("yaml_dat")) {
       
+      cat(rep("\n", 2))
       ## Import raw data
       raw_data <- read_file(file_path = yaml_dat$raw_data)
       if (is.null(raw_data)) {
@@ -102,6 +103,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("The start_column parameter is NULL.")
       }
       
+      cat(rep("\n", 2))
       ## Import BULP data
       BLUP <- read_file(file_path = yaml_dat$BLUP)
       if (is.null(BLUP)) {
@@ -124,15 +126,8 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("The BLUP_start_column parameter is NULL.")
       }
       
+      cat(rep("\n", 2))
       ## Import GAPIT reference files
-      # GAPIT hapmap file
-      GAPIT_hapmap <- read_file(file_path = yaml_dat$GAPIT_hapmap)
-      if (is.null(GAPIT_hapmap)) {
-        print("The GAPIT_hapmap parameter is NULL.")
-      } else{
-        print("GAPIT_hapmap has been loaded into memory.")
-      }
-
       # GAPIT kinship matrix
       GAPIT_kinship_matrix <- read_file(file_path = yaml_dat$GAPIT_kinship_matrix)
       if (is.null(GAPIT_kinship_matrix)) {
@@ -149,6 +144,14 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("GAPIT_covariates has been loaded into memory.")
       }
 
+      # GAPIT hapmap file
+      GAPIT_hapmap <- read_file(file_path = yaml_dat$GAPIT_hapmap)
+      if (is.null(GAPIT_hapmap)) {
+        print("The GAPIT_hapmap parameter is NULL.")
+      } else{
+        print("GAPIT_hapmap has been loaded into memory.")
+      }
+
       # GAPIT genotype data (numeric)
       GAPIT_genotype_data_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_data_numeric)
       if (is.null(GAPIT_genotype_data_numeric)) {
@@ -163,6 +166,87 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("The GAPIT_genotype_map_numeric parameter is NULL.")
       } else{
         print("GAPIT_genotype_map_numeric has been loaded into memory.")
+      }
+
+      # GAPIT hapmap file extension
+      if (!is.null(yaml_dat$GAPIT_hapmap_file_extension)) {
+        GAPIT_hapmap_file_extension <- yaml_dat$GAPIT_hapmap_file_extension
+        print(paste("GAPIT_hapmap_file_extension: ", GAPIT_hapmap_file_extension, sep = ""))
+      } else{
+        GAPIT_hapmap_file_extension <- NULL
+        print("The GAPIT_hapmap_file_extension parameter is NULL.")
+      }
+
+      # GAPIT genotype data numeric file extension
+      if (!is.null(yaml_dat$GAPIT_genotype_data_numeric_file_extension)) {
+        GAPIT_genotype_data_numeric_file_extension <- yaml_dat$GAPIT_genotype_data_numeric_file_extension
+        print(paste("GAPIT_genotype_data_numeric_file_extension: ", GAPIT_genotype_data_numeric_file_extension, sep = ""))
+      } else{
+        GAPIT_genotype_data_numeric_file_extension <- NULL
+        print("The GAPIT_genotype_data_numeric_file_extension parameter is NULL.")
+      }
+
+      # GAPIT genotype map numeric file extension
+      if (!is.null(yaml_dat$GAPIT_genotype_map_numeric_file_extension)) {
+        GAPIT_genotype_map_numeric_file_extension <- yaml_dat$GAPIT_genotype_map_numeric_file_extension
+        print(paste("GAPIT_genotype_map_numeric_file_extension: ", GAPIT_genotype_map_numeric_file_extension, sep = ""))
+      } else{
+        GAPIT_genotype_map_numeric_file_extension <- NULL
+        print("The GAPIT_genotype_map_numeric_file_extension parameter is NULL.")
+      }
+
+      # GAPIT hapmap filename
+      if (!is.null(yaml_dat$GAPIT_hapmap_filename)) {
+        GAPIT_hapmap_filename <- yaml_dat$GAPIT_hapmap_filename
+        print(paste("GAPIT_hapmap_filename: ", GAPIT_hapmap_filename, sep = ""))
+      } else{
+        GAPIT_hapmap_filename <- NULL
+        print("The GAPIT_hapmap_filename parameter is NULL.")
+      }
+
+      # GAPIT genotype data numeric filename
+      if (!is.null(yaml_dat$GAPIT_genotype_data_numeric_filename)) {
+        GAPIT_genotype_data_numeric_filename <- yaml_dat$GAPIT_genotype_data_numeric_filename
+        print(paste("GAPIT_genotype_data_numeric_filename: ", GAPIT_genotype_data_numeric_filename, sep = ""))
+      } else{
+        GAPIT_genotype_data_numeric_filename <- NULL
+        print("The GAPIT_genotype_data_numeric_filename parameter is NULL.")
+      }
+
+      # GAPIT genotype map numeric filename
+      if (!is.null(yaml_dat$GAPIT_genotype_map_numeric_filename)) {
+        GAPIT_genotype_map_numeric_filename <- yaml_dat$GAPIT_genotype_map_numeric_filename
+        print(paste("GAPIT_genotype_map_numeric_filename: ", GAPIT_genotype_map_numeric_filename, sep = ""))
+      } else{
+        GAPIT_genotype_map_numeric_filename <- NULL
+        print("The GAPIT_genotype_map_numeric_filename parameter is NULL.")
+      }
+
+      # GAPIT genotype file path
+      if (!is.null(yaml_dat$GAPIT_genotype_file_path)) {
+        GAPIT_genotype_file_path <- file.path(yaml_dat$GAPIT_genotype_file_path)
+        print(paste("GAPIT_genotype_file_path: ", GAPIT_genotype_file_path, sep = ""))
+      } else{
+        GAPIT_genotype_file_path <- NULL
+        print("The GAPIT_genotype_file_path parameter is NULL.")
+      }
+
+      # GAPIT genotype file named sequentially from
+      if (!is.null(yaml_dat$GAPIT_genotype_file_named_sequentially_from)) {
+        GAPIT_genotype_file_named_sequentially_from <- as.numeric(yaml_dat$GAPIT_genotype_file_named_sequentially_from)
+        print(paste("GAPIT_genotype_file_named_sequentially_from: ", GAPIT_genotype_file_named_sequentially_from, sep = ""))
+      } else{
+        GAPIT_genotype_file_named_sequentially_from <- 0
+        print("The GAPIT_genotype_file_named_sequentially_from parameter is 0.")
+      }
+
+      # GAPIT genotype file named sequentially to
+      if (!is.null(yaml_dat$GAPIT_genotype_file_named_sequentially_to)) {
+        GAPIT_genotype_file_named_sequentially_to <- as.numeric(yaml_dat$GAPIT_genotype_file_named_sequentially_to)
+        print(paste("GAPIT_genotype_file_named_sequentially_to: ", GAPIT_genotype_file_named_sequentially_to, sep = ""))
+      } else{
+        GAPIT_genotype_file_named_sequentially_to <- 0
+        print("The GAPIT_genotype_file_named_sequentially_to parameter is 0.")
       }
 
       # GAPIT model
@@ -189,6 +273,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("The GAPIT_LD_number parameter is NULL.")
       }
 
+      cat(rep("\n", 2))
       ## Import FarmCPU reference files
       # FarmCPU genotype file
       FarmCPU_genotype <- read_file(file_path = yaml_dat$FarmCPU_genotype)
@@ -236,6 +321,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("The FarmCPU_LD_number parameter is NULL.")
       }
 
+      cat(rep("\n", 2))
       ## Haploview
       # Hapmap_numeric file
       hapmap_numeric <- read_file(file_path = yaml_dat$hapmap_numeric)
@@ -245,6 +331,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("hapmap_numeric has been loaded into memory.")
       }
       
+      cat(rep("\n", 2))
       ## Match Gene Start and Gene Stop
       # gff file
       gff <- read_file(file_path = yaml_dat$gff)
@@ -254,6 +341,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
         print("gff has been loaded into memory.")
       }
       
+      cat(rep("\n", 2))
       ## Create output folder
       if (!is.null(yaml_dat$output)) {
         if (!dir.exists(yaml_dat$output)) {
@@ -424,9 +512,9 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
             by_column = BLUP_by_column,
             start_column = BLUP_start_column,
             output_path = folder_path,
-            model = GAPIT_model,
             p_value_fdr_threshold = GAPIT_p_value_fdr_threshold,
             ld_number = GAPIT_LD_number, 
+            model = GAPIT_model,
             hapmap_numeric = hapmap_numeric,
             gff = gff
           )
@@ -487,4 +575,4 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
   print("YAML file does not exists!!!")
 }
 
-cat(rep("\n", 2));print("-------------------- GWAS1001 Stop --------------------")
+cat(rep("\n", 2));print("-------------------- GWAS1001 Stop --------------------");cat(rep("\n", 2));

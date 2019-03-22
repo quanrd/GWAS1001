@@ -1,6 +1,21 @@
 ## farming with GAPIT
 farming_with_GAPIT <- function(dat, by_column = 1, start_column = 2, output_path, 
-                                model, p_value_fdr_threshold = NA, ld_number = 0, 
+                                p_value_fdr_threshold = NA, ld_number = 0, 
+                                KI = NULL,
+                                CV = NULL,
+                                G = NULL,
+                                GD = NULL,
+                                GM = NULL,
+                                file.Ext.G = NULL,
+                                file.Ext.GD = NULL,
+                                file.Ext.GM = NULL,
+                                file.G = NULL,
+                                file.GD = NULL,
+                                file.GM = NULL,
+                                file.path = NULL,
+                                file.from = NULL,
+                                file.to = NULL,
+                                model = "GLM", 
                                 hapmap_numeric, gff) {
 
     #######################################################################
@@ -38,17 +53,35 @@ farming_with_GAPIT <- function(dat, by_column = 1, start_column = 2, output_path
     #######################################################################
     ## farming with GAPIT and other operations
     #######################################################################
-    # gapit_result <- GAPIT(
-    #     Y = myY[,c(1,2)],
-    #     KI = NULL,
-    #     CV = NULL,
-    #     G = NULL,
-    #     GD = myGD,
-    #     GM = myGM,
-    #     model = "GLM",
-    #     PCA.total = 5,
-    #     file.output = FALSE
-    # )
+
+    # farming with GAPIT
+    gwas_result_list <- list()
+    for (i in start_column:ncol(dat)){
+        # gapit_result <- GAPIT(
+        #     Y = dat[,c(1,i)],
+        #     KI = NULL,
+        #     CV = NULL,
+        #     G = NULL,
+        #     GD = NULL,
+        #     GM = NULL,
+        #     file.Ext.G = NULL,
+        #     file.Ext.GD = NULL,
+        #     file.Ext.GM = NULL,
+        #     file.G = NULL,
+        #     file.GD = NULL,
+        #     file.GM = NULL,
+        #     file.path = NULL,
+        #     file.from = NULL,
+        #     file.to = NULL,
+        #     model = model,
+        #     PCA.total = 5,
+        #     file.output = FALSE
+        # )
+
+        # Add more code here
+        # Add more code here
+    }
+
 
     #######################################################################
     ## Reset the working directory

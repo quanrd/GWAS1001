@@ -11,12 +11,21 @@ BLUP_by_column:
 - 1
 BLUP_start_column: 2
 
-# Gapit
+# Gapit3
+GAPIT_kinship_matrix: ../reference_files/Arabidopsis_360/GAPIT/Kinhsip.matrix.txt
+GAPIT_covariates: ../reference_files/Arabidopsis_360/GAPIT/GGiR.Principal.Components.txt
 GAPIT_hapmap:
-GAPIT_kinship_matrix:
-GAPIT_covariates:
 GAPIT_genotype_data_numeric:
 GAPIT_genotype_map_numeric:
+GAPIT_hapmap_file_extension:
+GAPIT_genotype_data_numeric_file_extension: txt
+GAPIT_genotype_map_numeric_file_extension: txt
+GAPIT_hapmap_filename:
+GAPIT_genotype_data_numeric_filename: Call_Method_75_GD
+GAPIT_genotype_map_numeric_filename: IMPORTANT_Call_Method_75_GM
+GAPIT_genotype_file_path: ../reference_files/Arabidopsis_360/GAPIT/GD_GM_files
+GAPIT_genotype_file_named_sequentially_from: 1
+GAPIT_genotype_file_named_sequentially_to: 4
 GAPIT_model: GLM
 GAPIT_p_value_fdr_threshold: 0.01
 GAPIT_LD_number: 5000
