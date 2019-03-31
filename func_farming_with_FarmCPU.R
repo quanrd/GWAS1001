@@ -2,7 +2,9 @@
 ## farming with FarmCPU
 farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_path, 
                                  p_value_threshold = NA, p_value_fdr_threshold = NA, ld_number = 0, 
-                                 genotype, SNPs, hapmap_numeric, gff) {
+                                 GD = NULL, 
+                                 GM = NULL, 
+                                 hapmap_numeric, gff) {
   
   #######################################################################
   ## Create folders to store outputs
@@ -45,8 +47,8 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
   for (i in start_column:ncol(dat)){
     farmCPU_result <- FarmCPU(
       Y = dat[,c(1,i)],
-      GD = genotype,
-      GM = SNPs,
+      GD = GD,
+      GM = GM,
       MAF.calculate = TRUE,
       maf.threshold = 0.05,
       method.bin="optimum",
@@ -67,9 +69,9 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     gwas_result <- gwas_result[!is.na(gwas_result$P.value),]
     gwas_result$P.value.fdr <- p.adjust(gwas_result$P.value, method = "fdr")
     
-    if(!is.na(p_value_threshold)){
+    if(!is.na(p_value_threshold) | !is.null(p_value_threshold)){
       gwas_result <- gwas_result[gwas_result$P.value <= p_value_threshold,]
-    } else if(!is.na(p_value_fdr_threshold)){
+    } else if(!is.na(p_value_fdr_threshold) | !is.null(p_value_fdr_threshold)){
       gwas_result <- gwas_result[gwas_result$P.value.fdr <= p_value_fdr_threshold,]
     }
     
