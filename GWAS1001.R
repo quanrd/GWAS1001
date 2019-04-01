@@ -20,7 +20,7 @@ library(EMMREML)
 library(genetics)
 library(gplots)
 library(lme4)
-# library(LDheatmap)
+if(!require(LDheatmap)) { install.packages("LDheatmap") }
 library(multtest)
 library(scatterplot3d)
 library(sparklyr)
@@ -28,6 +28,11 @@ library(tidyverse)
 library(yaml)
 
 require(compiler)
+
+if (!require(multtest)){
+  BiocManager::install(multtest)
+  library(multtest)
+}
 
 
 # Older version of GAPIT
