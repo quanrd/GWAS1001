@@ -1,7 +1,7 @@
 #######################################################################
 ## Raw Data
 #######################################################################
-raw_data: ../raw_data/Arabidopsis_360/faa_vs_fTotal_2016.csv
+raw_data: 
 by_column:
 - 1
 - 2
@@ -10,7 +10,7 @@ start_column: 3
 #######################################################################
 ## BLUP or BLUE
 #######################################################################
-BLUP: ../BLUP_BLUE/Arabidopsis_360/BLUP_faa_vs_fTotal_2016.csv
+BLUP: ../BLUP_BLUE/Arabidopsis_1001/BLUE_FAA_1001_full_dataset.csv
 BLUP_by_column:
 - 1
 BLUP_start_column: 2
@@ -18,54 +18,58 @@ BLUP_start_column: 2
 #######################################################################
 ## Gapit3
 #######################################################################
-GAPIT_kinship_matrix: ../reference_files/Arabidopsis_360/GAPIT/kinship.matrix.txt
-GAPIT_covariates: ../reference_files/Arabidopsis_360/GAPIT/covariates.csv
+GAPIT_kinship_matrix: 
+GAPIT_covariates: 
 GAPIT_hapmap:
 GAPIT_genotype_data_numeric:
 GAPIT_genotype_map_numeric:
-GAPIT_hapmap_file_extension:
-GAPIT_genotype_data_numeric_file_extension: txt
-GAPIT_genotype_map_numeric_file_extension: txt
-GAPIT_hapmap_filename:
-GAPIT_genotype_data_numeric_filename: Call_Method_75_GD
-GAPIT_genotype_map_numeric_filename: IMPORTANT_Call_Method_75_GM
-GAPIT_genotype_file_path: /home/ycth8/data/GWAS1001/reference_files/Arabidopsis_360/GAPIT/GD_GM_files/
+GAPIT_hapmap_file_extension: hmp.txt
+GAPIT_genotype_data_numeric_file_extension:
+GAPIT_genotype_map_numeric_file_extension:
+GAPIT_hapmap_filename: 1001genomes_hmp_chr
+GAPIT_genotype_data_numeric_filename: 
+GAPIT_genotype_map_numeric_filename: 
+GAPIT_genotype_file_path: /home/ycth8/data/GWAS1001/reference_files/Arabidopsis_1001/GAPIT/
 GAPIT_genotype_file_named_sequentially_from: 1
-GAPIT_genotype_file_named_sequentially_to: 4
+GAPIT_genotype_file_named_sequentially_to: 5
 GAPIT_model: 
-# - GLM
-- MLM
+- GLM
+# - MLM
 # - MLMM
 # - SUPER
 # - FarmCPU
-GAPIT_SNP_MAF: 0.05
+GAPIT_SNP_MAF: 0
 GAPIT_PCA_total: 0
 GAPIT_Model_selection: TRUE
-GAPIT_SNP_test: FALSE
+GAPIT_SNP_test: TRUE
 GAPIT_file_output: TRUE
-GAPIT_p_value_fdr_threshold: 0.6
+GAPIT_p_value_fdr_threshold: 0.1
 GAPIT_LD_number: 5000
 
 #######################################################################
 ## FarmCPU
 #######################################################################
-FarmCPU_genotype_data: ../reference_files/Arabidopsis_360/FarmCPU/genotype.csv
-FarmCPU_genotype_map: ../reference_files/Arabidopsis_360/FarmCPU/SNPs.csv
-FarmCPU_p_value_threshold: 1e-5
-FarmCPU_p_value_fdr_threshold: 0.01
-FarmCPU_LD_number: 5000
+FarmCPU_genotype_data: 
+FarmCPU_genotype_map: 
+FarmCPU_p_value_threshold: 
+FarmCPU_p_value_fdr_threshold: 
+FarmCPU_LD_number: 
 
 #######################################################################
 ## Haploview
 #######################################################################
-hapmap_numeric: ../reference_files/Arabidopsis_360/FarmCPU/hapmap_numeric.csv
+Haploview_file_path: 
+Haploview_file_name: 
+Haploview_file_extension: 
+Haploview_file_named_sequentially_from: 
+Haploview_file_named_sequentially_to: 
 
 #######################################################################
 ## Match Gene Start and Stop
 #######################################################################
-gff: ../reference_files/Arabidopsis_360/FarmCPU/gene.gff.csv
+gff: ../reference_files/Arabidopsis_1001/GAPIT/gene.gff.csv
 
 #######################################################################
 ## Output Directory
 #######################################################################
-output: ../output/output1
+output: ../output/output2

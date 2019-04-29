@@ -69,9 +69,9 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     gwas_result <- gwas_result[!is.na(gwas_result$P.value),]
     gwas_result$P.value.fdr <- p.adjust(gwas_result$P.value, method = "fdr")
     
-    if(!is.na(p_value_threshold) | !is.null(p_value_threshold)){
+    if(!is.na(p_value_threshold)){
       gwas_result <- gwas_result[gwas_result$P.value <= p_value_threshold,]
-    } else if(!is.na(p_value_fdr_threshold) | !is.null(p_value_fdr_threshold)){
+    } else if(!is.na(p_value_fdr_threshold)){
       gwas_result <- gwas_result[gwas_result$P.value.fdr <= p_value_fdr_threshold,]
     }
     

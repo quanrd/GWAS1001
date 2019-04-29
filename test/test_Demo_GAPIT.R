@@ -1,13 +1,11 @@
-# Clear all variables
+## Clean the workspace
 rm(list = ls())
-
 
 
 # Set repository so that required packages can be downloaded
 r = getOption("repos")
 r["CRAN"] = "http://cran.us.r-project.org"
 options(repos = r)
-
 
 
 # Install path
@@ -17,10 +15,7 @@ if(!dir.exists(p)){
 }
 
 
-
-# BiocManager package version
 bioc_version <- "3.8"
-
 
 
 # Gather required packages
@@ -46,7 +41,6 @@ invisible(lapply(packages, FUN = function(x){
 }))
 
 
-
 # The packages here are from BiocManager
 bioc_packages <- c("zlibbioc", "snpStats", "multtest")
 
@@ -57,7 +51,6 @@ invisible(lapply(bioc_packages, FUN = function(x){
     library(x, lib.loc = p, character.only = TRUE)
   }
 }))
-
 
 
 # The packages here are from BiocManager
@@ -72,50 +65,55 @@ invisible(lapply(github_packages, FUN = function(x){
 }))
 
 
-
 # Print this after all packages are successfully installed
 loaded_packages <- sessionInfo()
 print(names(loaded_packages$otherPkgs))
 
 
 
-# Create these folders
-foldernames <- c("raw_data", "BLUP_BLUE", "reference_files", "output")
-for (i in 1:length(foldernames)) {
-  temp <- file.path("..", foldernames[i])
-  if(!dir.exists(temp)){
-    dir.create(temp)
-    if(dir.exists(temp)){
-      print(paste(foldernames[i], " folder has been created!!!", sep = ""))
-    } else{
-      print(paste(foldernames[i], " folder cannot be created!!!", sep = ""))
-    }
-  } else{
-    print(paste(foldernames[i], " folder exists!!!", sep = ""))
-  }
-}
+# Older version of GAPIT
+# source("https://raw.githubusercontent.com/yenon118/GWAS_Cli_App/master/emma.txt")
+# source("https://raw.githubusercontent.com/yenon118/GWAS_Cli_App/master/gapit_functions_20160415.txt")
+
+# Import GAPIT Library
+# source("http://www.zzlab.net/GAPIT/GAPIT.library.R")
+
+# Import EMMA
+source("http://www.zzlab.net/GAPIT/emma.txt")
+
+# Import FarmCPU
+source("http://www.zzlab.net/FarmCPU/FarmCPU_functions.txt")
+
+# Import GAPIT
+source("http://www.zzlab.net/GAPIT/gapit_functions.txt")
 
 
+dat <- read.table(file = file.path("/home/ycth8/data/GWAS1001/BLUP_BLUE/Demo/mdp_traits.txt"), 
+                header = TRUE,
+                stringsAsFactors = FALSE, 
+                check.names = FALSE)
 
-# Create this yaml file 
-filename <- "required_data.yaml"
-dat <- readLines(con = filename)
-writeLines(dat, con = file.path("..", filename))
-if (file.exists(file.path("..", filename))) {
-  print(paste(filename, " has been created!!!", sep = ""))
+if(nrow(dat) >= 10){
+  print(dat[1:10, ])
 } else{
-  print(paste(filename, " cannot be created!!!", sep = ""))
+  print(dat)
 }
 
-
-
-# Copy this file into raw directory
-filename <- "raw_add_A.R"
-dat <- readLines(con = filename)
-writeLines(dat, con = file.path("..", "raw_data", filename))
-if (file.exists(file.path("..", "raw_data", filename))) {
-  print(paste(filename, " has been created!!!", sep = ""))
-} else{
-  print(paste(filename, " cannot be created!!!", sep = ""))
+if(dir.exists("/home/ycth8/data/GWAS1001/reference_files/Demo/")){
+  print("dir exists")
+}else{
+  print("dir does not exist")
 }
 
+start_column <- 2
+
+for (i in start_column:ncol(dat)){
+  Results <- GAPIT(
+    Y = dat[,c(1,i)],
+    file.Ext.G = "hmp.txt",
+    file.G = "mdp_genotype_chr",
+    file.from = 1,
+    file.to = 10,
+    file.path = "/home/ycth8/data/GWAS1001/reference_files/Demo/"
+  )
+}

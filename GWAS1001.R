@@ -1,55 +1,83 @@
 ## Clean the workspace
 rm(list = ls())
 
-
 # Set repository so that required packages can be downloaded
 r = getOption("repos")
 r["CRAN"] = "http://cran.us.r-project.org"
 options(repos = r)
 
-
-## Import library
-library(ape)
-library(bigmemory)
-library(biganalytics)
-library(car)
-library(data.table)
-library(DataCombine)
-library(DBI)
-library(EMMREML)
-library(genetics)
-library(gplots)
-library(lme4)
-if(!require(LDheatmap)) { install.packages("LDheatmap") }
-library(multtest)
-library(scatterplot3d)
-library(sparklyr)
-library(tidyverse)
-library(yaml)
-
-require(compiler)
-
-if (!require(multtest)){
-  BiocManager::install(multtest)
-  library(multtest)
+# Install path
+p <- "~/R/x86_64-redhat-linux-gnu-library/3.5/"
+if(!dir.exists(p)){
+  dir.create(path = p, recursive = TRUE)
 }
 
+bioc_version <- "3.8"
 
-# Older version of GAPIT
-source("https://raw.githubusercontent.com/yenon118/GWAS_Cli_App/master/emma.txt")
-source("https://raw.githubusercontent.com/yenon118/GWAS_Cli_App/master/gapit_functions_20160415.txt")
 
-# Import GAPIT Library
-# source("http://www.zzlab.net/GAPIT/GAPIT.library.R")
+
+# Gather required packages
+packages <- c("ape", 
+              "bigmemory", "biganalytics", "BiocManager", 
+              "curl", "compiler", "car", 
+              "data.table", "devtools", "DataCombine", "DBI", 
+              "EMMREML", 
+              "genetics", "gplots", "grid", 
+              "httr", 
+              "lme4", "LDheatmap", 
+              "rvest", 
+              "scatterplot3d", "sparklyr", 
+              "plyr", "dplyr", "tidyverse", 
+              "yaml")
+
+# Check packages and install them if needed
+invisible(lapply(packages, FUN = function(x){
+  if (!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE, repos = "https://cran.cnr.berkeley.edu/", lib = p)
+    library(x, lib.loc = p, character.only = TRUE)
+  }
+}))
+
+
+# The packages here are from BiocManager
+bioc_packages <- c("zlibbioc", "snpStats", "multtest")
+
+# Check packages and install them if needed
+invisible(lapply(bioc_packages, FUN = function(x){
+  if (!require(x, character.only = TRUE)) {
+    BiocManager::install(x, version = bioc_version, lib.loc = p, lib = p)
+    library(x, lib.loc = p, character.only = TRUE)
+  }
+}))
+
+
+# The packages here are from BiocManager
+github_packages <- c("ggbiplot")
+
+# Check packages and install them if needed
+invisible(lapply(github_packages, FUN = function(x){
+  if (!require(x, character.only = TRUE)) {
+    install_github("vqv/ggbiplot", lib = p)
+    library(x, lib.loc = p, character.only = TRUE)
+  }
+}))
+
+
+
+# Print this after all packages are successfully installed
+loaded_packages <- sessionInfo()
+print(names(loaded_packages$otherPkgs))
+
+
 
 # Import EMMA
-# source("http://www.zzlab.net/GAPIT/emma.txt")
-
-# Import GAPIT
-# source("http://www.zzlab.net/GAPIT/gapit_functions.txt")
+source("http://www.zzlab.net/GAPIT/emma.txt")
 
 # Import FarmCPU
 source("http://www.zzlab.net/FarmCPU/FarmCPU_functions.txt")
+
+# Import GAPIT
+source("http://www.zzlab.net/GAPIT/gapit_functions.txt")
 
 # Source R files
 source("func_read_file.R")
@@ -59,600 +87,753 @@ source("func_boxcox_transformation.R")
 source("func_generate_BLUP.R")
 source("func_farming_with_FarmCPU.R")
 source("func_farming_with_GAPIT.R")
+source("func_extract_haplotype.R")
+source("func_search_genes.R")
+
 
 
 ## Get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 
+
+
 cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------");cat(rep("\n", 2));
+
+
+
+#######################################################################
+## Check provided arguments and read in YAML file data
+#######################################################################
 
 # Check if the YAML file path is in the args
 if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(args[1]))) {
-
   print("YAML file exists!!!")
+  cat(rep("\n", 2))
+} else{
+  print("The first provided argument is not a YAML file path or the YAML file does not exists!!!")
+  cat(rep("\n", 2))
+  quit(status = -1)
+}
 
-  # If there are more than one argument
-  if (length(args) > 1) {
+# If there are more than one argument, print all the actions needed to perform
+if (length(args) > 1) {
+  print(args[2:length(args)])
+  cat(rep("\n", 2))
+} else{
+  print("No action is required to perform!!!")
+  cat(rep("\n", 2))
+  quit(status = -1)
+}
 
-    print(args[2:length(args)])
 
-    ## Import configuration file and read in raw data and reference files
-    yaml_dat <- tryCatch({
-                  read_yaml(file.path(args[1]))
-                }, error = function(e) {
-                  print("The yaml file is invalid!!!")
-                  quit(status = -1)
-                })
+## Import configuration file and read in raw data and reference files
+yaml_dat <- tryCatch({
+  read_yaml(file.path(args[1]))
+}, error = function(e) {
+  print("The yaml file is invalid!!!")
+  quit(status = -1)
+})
 
-    #######################################################################
-    ## Read in all file and data that are specified in the YAML file
-    #######################################################################
 
-    if (exists("yaml_dat")) {
 
-      cat(rep("\n", 2))
-      ## Import raw data
-      raw_data <- read_file(file_path = yaml_dat$raw_data)
-      if (is.null(raw_data)) {
-        print("The raw_data parameter is NULL.")
-      } else{
-        print("raw_data has been loaded into memory.")
-      }
+#######################################################################
+## Check yaml data parameters
+#######################################################################
 
-      if (!is.null(yaml_dat$by_column)) {
-        by_column <- yaml_dat$by_column
-        print(paste("by_column: ", by_column, sep = ""))
-      } else{
-        print("The by_column parameter is NULL.")
-      }
-
-      if (!is.null(yaml_dat$start_column)) {
-        start_column <- yaml_dat$start_column
-        print(paste("start_column: ", start_column, sep = ""))
-      } else{
-        print("The start_column parameter is NULL.")
-      }
-
-      cat(rep("\n", 2))
-      ## Import BULP data
-      BLUP <- read_file(file_path = yaml_dat$BLUP)
-      if (is.null(BLUP)) {
-        print("The BLUP parameter is NULL.")
-      } else{
-        print("BLUP has been loaded into memory.")
-      }
-
-      if (!is.null(yaml_dat$BLUP_by_column)) {
-        BLUP_by_column <- yaml_dat$BLUP_by_column
-        print(paste("BLUP_by_column: ", BLUP_by_column, sep = ""))
-      } else{
-        print("The BLUP_by_column parameter is NULL.")
-      }
-
-      if (!is.null(yaml_dat$BLUP_start_column)) {
-        BLUP_start_column <- yaml_dat$BLUP_start_column
-        print(paste("BLUP_start_column: ", BLUP_start_column, sep = ""))
-      } else{
-        print("The BLUP_start_column parameter is NULL.")
-      }
-
-      cat(rep("\n", 2))
-      ## Import GAPIT reference files
-      # GAPIT kinship matrix
-      GAPIT_kinship_matrix <- read_file(file_path = yaml_dat$GAPIT_kinship_matrix)
-      if (is.null(GAPIT_kinship_matrix)) {
-        print("The GAPIT_kinship_matrix parameter is NULL.")
-      } else{
-        print("GAPIT_kinship_matrix has been loaded into memory.")
-      }
-
-      # GAPIT covariates
-      GAPIT_covariates <- read_file(file_path = yaml_dat$GAPIT_covariates)
-      if (is.null(GAPIT_covariates)) {
-        print("The GAPIT_covariates parameter is NULL.")
-      } else{
-        print("GAPIT_covariates has been loaded into memory.")
-      }
-
-      # GAPIT hapmap file
-      GAPIT_hapmap <- read_file(file_path = yaml_dat$GAPIT_hapmap)
-      if (is.null(GAPIT_hapmap)) {
-        print("The GAPIT_hapmap parameter is NULL.")
-      } else{
-        print("GAPIT_hapmap has been loaded into memory.")
-      }
-
-      # GAPIT genotype data (numeric)
-      GAPIT_genotype_data_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_data_numeric)
-      if (is.null(GAPIT_genotype_data_numeric)) {
-        print("The GAPIT_genotype_data_numeric parameter is NULL.")
-      } else{
-        print("GAPIT_genotype_data_numeric has been loaded into memory.")
-      }
-
-      # GAPIT genotype map (numeric)
-      GAPIT_genotype_map_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_map_numeric)
-      if (is.null(GAPIT_genotype_map_numeric)) {
-        print("The GAPIT_genotype_map_numeric parameter is NULL.")
-      } else{
-        print("GAPIT_genotype_map_numeric has been loaded into memory.")
-      }
-
-      # GAPIT hapmap file extension
-      if (!is.null(yaml_dat$GAPIT_hapmap_file_extension)) {
-        GAPIT_hapmap_file_extension <- yaml_dat$GAPIT_hapmap_file_extension
-        print(paste("GAPIT_hapmap_file_extension: ", GAPIT_hapmap_file_extension, sep = ""))
-      } else{
-        GAPIT_hapmap_file_extension <- NULL
-        print("The GAPIT_hapmap_file_extension parameter is NULL.")
-      }
-
-      # GAPIT genotype data numeric file extension
-      if (!is.null(yaml_dat$GAPIT_genotype_data_numeric_file_extension)) {
-        GAPIT_genotype_data_numeric_file_extension <- yaml_dat$GAPIT_genotype_data_numeric_file_extension
-        print(paste("GAPIT_genotype_data_numeric_file_extension: ", GAPIT_genotype_data_numeric_file_extension, sep = ""))
-      } else{
-        GAPIT_genotype_data_numeric_file_extension <- NULL
-        print("The GAPIT_genotype_data_numeric_file_extension parameter is NULL.")
-      }
-
-      # GAPIT genotype map numeric file extension
-      if (!is.null(yaml_dat$GAPIT_genotype_map_numeric_file_extension)) {
-        GAPIT_genotype_map_numeric_file_extension <- yaml_dat$GAPIT_genotype_map_numeric_file_extension
-        print(paste("GAPIT_genotype_map_numeric_file_extension: ", GAPIT_genotype_map_numeric_file_extension, sep = ""))
-      } else{
-        GAPIT_genotype_map_numeric_file_extension <- NULL
-        print("The GAPIT_genotype_map_numeric_file_extension parameter is NULL.")
-      }
-
-      # GAPIT hapmap filename
-      if (!is.null(yaml_dat$GAPIT_hapmap_filename)) {
-        GAPIT_hapmap_filename <- yaml_dat$GAPIT_hapmap_filename
-        print(paste("GAPIT_hapmap_filename: ", GAPIT_hapmap_filename, sep = ""))
-      } else{
-        GAPIT_hapmap_filename <- NULL
-        print("The GAPIT_hapmap_filename parameter is NULL.")
-      }
-
-      # GAPIT genotype data numeric filename
-      if (!is.null(yaml_dat$GAPIT_genotype_data_numeric_filename)) {
-        GAPIT_genotype_data_numeric_filename <- yaml_dat$GAPIT_genotype_data_numeric_filename
-        print(paste("GAPIT_genotype_data_numeric_filename: ", GAPIT_genotype_data_numeric_filename, sep = ""))
-      } else{
-        GAPIT_genotype_data_numeric_filename <- NULL
-        print("The GAPIT_genotype_data_numeric_filename parameter is NULL.")
-      }
-
-      # GAPIT genotype map numeric filename
-      if (!is.null(yaml_dat$GAPIT_genotype_map_numeric_filename)) {
-        GAPIT_genotype_map_numeric_filename <- yaml_dat$GAPIT_genotype_map_numeric_filename
-        print(paste("GAPIT_genotype_map_numeric_filename: ", GAPIT_genotype_map_numeric_filename, sep = ""))
-      } else{
-        GAPIT_genotype_map_numeric_filename <- NULL
-        print("The GAPIT_genotype_map_numeric_filename parameter is NULL.")
-      }
-
-      # GAPIT genotype file path
-      if (!is.null(yaml_dat$GAPIT_genotype_file_path)) {
-        GAPIT_genotype_file_path <- file.path(yaml_dat$GAPIT_genotype_file_path)
-        print(paste("GAPIT_genotype_file_path: ", GAPIT_genotype_file_path, sep = ""))
-      } else{
-        GAPIT_genotype_file_path <- NULL
-        print("The GAPIT_genotype_file_path parameter is NULL.")
-      }
-
-      # GAPIT genotype file named sequentially from
-      if (!is.null(yaml_dat$GAPIT_genotype_file_named_sequentially_from)) {
-        GAPIT_genotype_file_named_sequentially_from <- as.numeric(yaml_dat$GAPIT_genotype_file_named_sequentially_from)
-        print(paste("GAPIT_genotype_file_named_sequentially_from: ", GAPIT_genotype_file_named_sequentially_from, sep = ""))
-      } else{
-        GAPIT_genotype_file_named_sequentially_from <- 0
-        print("The GAPIT_genotype_file_named_sequentially_from parameter is 0.")
-      }
-
-      # GAPIT genotype file named sequentially to
-      if (!is.null(yaml_dat$GAPIT_genotype_file_named_sequentially_to)) {
-        GAPIT_genotype_file_named_sequentially_to <- as.numeric(yaml_dat$GAPIT_genotype_file_named_sequentially_to)
-        print(paste("GAPIT_genotype_file_named_sequentially_to: ", GAPIT_genotype_file_named_sequentially_to, sep = ""))
-      } else{
-        GAPIT_genotype_file_named_sequentially_to <- 0
-        print("The GAPIT_genotype_file_named_sequentially_to parameter is 0.")
-      }
-
-      # GAPIT model
-      if (!is.null(yaml_dat$GAPIT_model)) {
-        GAPIT_model <- yaml_dat$GAPIT_model
-        print(paste("GAPIT_model: ", GAPIT_model, sep = ""))
-      } else{
-        GAPIT_model <- NULL
-        print("The GAPIT_model parameter is NULL.")
-      }
-
-      # GAPIT SNP.MAF
-      if (!is.null(yaml_dat$GAPIT_SNP_MAF)) {
-        GAPIT_SNP_MAF <- as.numeric(yaml_dat$GAPIT_SNP_MAF)
-        if(is.na(GAPIT_SNP_MAF)) { GAPIT_SNP_MAF <- 0 }
-        print(paste("GAPIT_SNP_MAF: ", GAPIT_SNP_MAF, sep = ""))
-      } else{
-        GAPIT_SNP_MAF <- 0
-        print("The GAPIT_SNP_MAF parameter is 0.")
-      }
-
-      # GAPIT PCA total
-      if (!is.null(yaml_dat$GAPIT_PCA_total)) {
-        GAPIT_PCA_total <- as.numeric(yaml_dat$GAPIT_PCA_total)
-        if(is.na(GAPIT_PCA_total)) { GAPIT_PCA_total <- 0 }
-        print(paste("GAPIT_PCA_total: ", GAPIT_PCA_total, sep = ""))
-      } else{
-        GAPIT_PCA_total <- 0
-        print("The GAPIT_PCA_total parameter is 0.")
-      }
-
-      # GAPIT Model selection
-      if (!is.null(yaml_dat$GAPIT_Model_selection)) {
-        GAPIT_Model_selection <- as.logical(yaml_dat$GAPIT_Model_selection)
-        if(!is.logical(GAPIT_Model_selection) | is.na(GAPIT_Model_selection)) { GAPIT_Model_selection <- FALSE }
-        print(paste("GAPIT_Model_selection: ", GAPIT_Model_selection, sep = ""))
-      } else{
-        GAPIT_Model_selection <- FALSE
-        print("The GAPIT_Model_selection parameter is FALSE.")
-      }
-
-      # GAPIT SNP test
-      if (!is.null(yaml_dat$GAPIT_SNP_test)) {
-        GAPIT_SNP_test <- as.logical(yaml_dat$GAPIT_SNP_test)
-        if(!is.logical(GAPIT_SNP_test) | is.na(GAPIT_SNP_test)) { GAPIT_SNP_test <- FALSE }
-        print(paste("GAPIT_SNP_test: ", GAPIT_SNP_test, sep = ""))
-      } else{
-        GAPIT_SNP_test <- FALSE
-        print("The GAPIT_SNP_test parameter is FALSE.")
-      }
-
-      # GAPIT file output
-      if (!is.null(yaml_dat$GAPIT_file_output)) {
-        GAPIT_file_output <- as.logical(yaml_dat$GAPIT_file_output)
-        if(!is.logical(GAPIT_file_output) | is.na(GAPIT_file_output)) { GAPIT_file_output <- FALSE }
-        print(paste("GAPIT_file_output: ", GAPIT_file_output, sep = ""))
-      } else{
-        GAPIT_file_output <- FALSE
-        print("The GAPIT_file_output parameter is FALSE.")
-      }
-
-      # GAPIT p.Value FDR threshold
-      if (!is.null(yaml_dat$GAPIT_p_value_fdr_threshold)) {
-        GAPIT_p_value_fdr_threshold <- as.numeric(yaml_dat$GAPIT_p_value_fdr_threshold)
-        print(paste("GAPIT_p_value_fdr_threshold: ", GAPIT_p_value_fdr_threshold, sep = ""))
-      } else{
-        print("The GAPIT_p_value_fdr_threshold parameter is NULL.")
-      }
-
-      # GAPIT LD_number
-      if (!is.null(yaml_dat$GAPIT_LD_number)) {
-        GAPIT_LD_number <- as.numeric(yaml_dat$GAPIT_LD_number)
-        print(paste("GAPIT_LD_number: ", GAPIT_LD_number, sep = ""))
-      } else{
-        print("The GAPIT_LD_number parameter is NULL.")
-      }
-
-      cat(rep("\n", 2))
-      ## Import FarmCPU reference files
-      # FarmCPU genotype data file
-      FarmCPU_genotype_data <- read_file(file_path = yaml_dat$FarmCPU_genotype_data)
-      if (is.null(FarmCPU_genotype_data)) {
-        print("The FarmCPU_genotype_data parameter is NULL.")
-      } else{
-        print("FarmCPU_genotype_data has been loaded into memory.")
-      }
-
-      # FarmCPU genotype map file
-      FarmCPU_genotype_map <- read_file(file_path = yaml_dat$FarmCPU_genotype_map)
-      if (is.null(FarmCPU_genotype_map)) {
-        print("The FarmCPU_genotype_map parameter is NULL.")
-      } else{
-        print("FarmCPU_genotype_map has been loaded into memory.")
-      }
-
-      # FarmCPU ecotype file
-      FarmCPU_ecotype <- read_file(file_path = yaml_dat$FarmCPU_ecotype)
-      if (is.null(FarmCPU_ecotype)) {
-        print("The FarmCPU_ecotype parameter is NULL.")
-      } else{
-        print("FarmCPU_ecotype has been loaded into memory.")
-      }
-
-      # FarmCPU filter threshold p_value_threshold and p_value_fdr_threshold
-      if (!is.null(yaml_dat$FarmCPU_p_value_threshold)) {
-        FarmCPU_p_value_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_threshold)
-        print(paste("FarmCPU_p_value_threshold: ", FarmCPU_p_value_threshold, sep = ""))
-      } else{
-        print("The FarmCPU_p_value_threshold parameter is NULL.")
-      }
-      if (!is.null(yaml_dat$FarmCPU_p_value_fdr_threshold)) {
-        FarmCPU_p_value_fdr_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_fdr_threshold)
-        print(paste("FarmCPU_p_value_fdr_threshold: ", FarmCPU_p_value_fdr_threshold, sep = ""))
-      } else{
-        print("The FarmCPU_p_value_fdr_threshold parameter is NULL.")
-      }
-
-      # FarmCPU LD_number
-      if (!is.null(yaml_dat$FarmCPU_LD_number)) {
-        FarmCPU_LD_number <- as.numeric(yaml_dat$FarmCPU_LD_number)
-        print(paste("FarmCPU_LD_number: ", FarmCPU_LD_number, sep = ""))
-      } else{
-        print("The FarmCPU_LD_number parameter is NULL.")
-      }
-
-      cat(rep("\n", 2))
-      ## Haploview
-      # Hapmap_numeric file
-      hapmap_numeric <- read_file(file_path = yaml_dat$hapmap_numeric)
-      if (is.null(hapmap_numeric)) {
-        print("The hapmap_numeric parameter is NULL.")
-      } else{
-        print("hapmap_numeric has been loaded into memory.")
-      }
-
-      cat(rep("\n", 2))
-      ## Match Gene Start and Gene Stop
-      # gff file
-      gff <- read_file(file_path = yaml_dat$gff)
-      if (is.null(gff)) {
-        print("The gff parameter is NULL.")
-      } else{
-        print("gff has been loaded into memory.")
-      }
-
-      cat(rep("\n", 2))
-      ## Create output folder
-      if (!is.null(yaml_dat$output)) {
-        if (!dir.exists(yaml_dat$output)) {
-          dir.create(path = yaml_dat$output, showWarnings = TRUE, recursive = TRUE)
-          if (dir.exists(yaml_dat$output)) {
-            output <- file.path(yaml_dat$output)
-          }
-        } else{
-          output <- file.path(yaml_dat$output)
-          print("The output folder exists.")
-        }
-      } else{
-        print("The output parameter is NULL.")
+if (exists("yaml_dat")) {
+  if(is.null(yaml_dat$raw_data) & is.null(yaml_dat$BLUP)){
+    print("The yaml data does not have input file path!!!")
+    quit(status = -1)
+  } 
+  if(is.null(yaml_dat$by_column) | is.null(yaml_dat$start_column) | 
+      is.null(yaml_dat$BLUP_by_column) | is.null(yaml_dat$BLUP_start_column)){
+        print("The yaml data does not have input file by_column or start_column configuration!!!")
         quit(status = -1)
+  }
+  if(is.null(yaml_dat$output)){
+    print("The yaml data does not have output path!!!")
+    quit(status = -1)
+  }
+} else{
+  print("The yaml data was not read into the work space!!!")
+  quit(status = -1)
+}
+
+
+
+#######################################################################
+## Read in all file and data that are specified in the YAML file
+#######################################################################
+
+cat(rep("\n", 2))
+## Import raw data
+raw_data <- read_file(file_path = yaml_dat$raw_data)
+if (is.null(raw_data)) {
+  print("The raw_data parameter is NULL.")
+} else{
+  print("raw_data has been loaded into memory.")
+}
+
+if (!is.null(yaml_dat$by_column)) {
+  by_column <- yaml_dat$by_column
+  print(paste("by_column: ", by_column, sep = ""))
+} else{
+  print("The by_column parameter is NULL.")
+}
+
+if (!is.null(yaml_dat$start_column)) {
+  start_column <- yaml_dat$start_column
+  print(paste("start_column: ", start_column, sep = ""))
+} else{
+  print("The start_column parameter is NULL.")
+}
+
+cat(rep("\n", 2))
+## Import BULP data
+BLUP <- read_file(file_path = yaml_dat$BLUP)
+if (is.null(BLUP)) {
+  print("The BLUP parameter is NULL.")
+} else{
+  print("BLUP has been loaded into memory.")
+}
+
+if (!is.null(yaml_dat$BLUP_by_column)) {
+  BLUP_by_column <- yaml_dat$BLUP_by_column
+  print(paste("BLUP_by_column: ", BLUP_by_column, sep = ""))
+} else{
+  print("The BLUP_by_column parameter is NULL.")
+}
+
+if (!is.null(yaml_dat$BLUP_start_column)) {
+  BLUP_start_column <- yaml_dat$BLUP_start_column
+  print(paste("BLUP_start_column: ", BLUP_start_column, sep = ""))
+} else{
+  print("The BLUP_start_column parameter is NULL.")
+}
+
+cat(rep("\n", 2))
+## Import GAPIT reference files
+# GAPIT kinship matrix
+GAPIT_kinship_matrix <- read_file(file_path = yaml_dat$GAPIT_kinship_matrix, header = FALSE)
+if (is.null(GAPIT_kinship_matrix)) {
+  print("The GAPIT_kinship_matrix parameter is NULL.")
+} else{
+  print("GAPIT_kinship_matrix has been loaded into memory.")
+}
+
+# GAPIT covariates
+GAPIT_covariates <- read_file(file_path = yaml_dat$GAPIT_covariates)
+if (is.null(GAPIT_covariates)) {
+  print("The GAPIT_covariates parameter is NULL.")
+} else{
+  print("GAPIT_covariates has been loaded into memory.")
+}
+
+# GAPIT hapmap file
+GAPIT_hapmap <- read_file(file_path = yaml_dat$GAPIT_hapmap, header = FALSE)
+if (is.null(GAPIT_hapmap)) {
+  print("The GAPIT_hapmap parameter is NULL.")
+} else{
+  print("GAPIT_hapmap has been loaded into memory.")
+}
+
+# GAPIT genotype data (numeric)
+GAPIT_genotype_data_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_data_numeric)
+if (is.null(GAPIT_genotype_data_numeric)) {
+  print("The GAPIT_genotype_data_numeric parameter is NULL.")
+} else{
+  print("GAPIT_genotype_data_numeric has been loaded into memory.")
+}
+
+# GAPIT genotype map (numeric)
+GAPIT_genotype_map_numeric <- read_file(file_path = yaml_dat$GAPIT_genotype_map_numeric)
+if (is.null(GAPIT_genotype_map_numeric)) {
+  print("The GAPIT_genotype_map_numeric parameter is NULL.")
+} else{
+  print("GAPIT_genotype_map_numeric has been loaded into memory.")
+}
+
+# GAPIT hapmap file extension
+if (!is.null(yaml_dat$GAPIT_hapmap_file_extension)) {
+  GAPIT_hapmap_file_extension <- yaml_dat$GAPIT_hapmap_file_extension
+  print(paste("GAPIT_hapmap_file_extension: ", GAPIT_hapmap_file_extension, sep = ""))
+} else{
+  GAPIT_hapmap_file_extension <- NULL
+  print("The GAPIT_hapmap_file_extension parameter is NULL.")
+}
+
+# GAPIT genotype data numeric file extension
+if (!is.null(yaml_dat$GAPIT_genotype_data_numeric_file_extension)) {
+  GAPIT_genotype_data_numeric_file_extension <- yaml_dat$GAPIT_genotype_data_numeric_file_extension
+  print(paste("GAPIT_genotype_data_numeric_file_extension: ", GAPIT_genotype_data_numeric_file_extension, sep = ""))
+} else{
+  GAPIT_genotype_data_numeric_file_extension <- NULL
+  print("The GAPIT_genotype_data_numeric_file_extension parameter is NULL.")
+}
+
+# GAPIT genotype map numeric file extension
+if (!is.null(yaml_dat$GAPIT_genotype_map_numeric_file_extension)) {
+  GAPIT_genotype_map_numeric_file_extension <- yaml_dat$GAPIT_genotype_map_numeric_file_extension
+  print(paste("GAPIT_genotype_map_numeric_file_extension: ", GAPIT_genotype_map_numeric_file_extension, sep = ""))
+} else{
+  GAPIT_genotype_map_numeric_file_extension <- NULL
+  print("The GAPIT_genotype_map_numeric_file_extension parameter is NULL.")
+}
+
+# GAPIT hapmap filename
+if (!is.null(yaml_dat$GAPIT_hapmap_filename)) {
+  GAPIT_hapmap_filename <- yaml_dat$GAPIT_hapmap_filename
+  print(paste("GAPIT_hapmap_filename: ", GAPIT_hapmap_filename, sep = ""))
+} else{
+  GAPIT_hapmap_filename <- NULL
+  print("The GAPIT_hapmap_filename parameter is NULL.")
+}
+
+# GAPIT genotype data numeric filename
+if (!is.null(yaml_dat$GAPIT_genotype_data_numeric_filename)) {
+  GAPIT_genotype_data_numeric_filename <- yaml_dat$GAPIT_genotype_data_numeric_filename
+  print(paste("GAPIT_genotype_data_numeric_filename: ", GAPIT_genotype_data_numeric_filename, sep = ""))
+} else{
+  GAPIT_genotype_data_numeric_filename <- NULL
+  print("The GAPIT_genotype_data_numeric_filename parameter is NULL.")
+}
+
+# GAPIT genotype map numeric filename
+if (!is.null(yaml_dat$GAPIT_genotype_map_numeric_filename)) {
+  GAPIT_genotype_map_numeric_filename <- yaml_dat$GAPIT_genotype_map_numeric_filename
+  print(paste("GAPIT_genotype_map_numeric_filename: ", GAPIT_genotype_map_numeric_filename, sep = ""))
+} else{
+  GAPIT_genotype_map_numeric_filename <- NULL
+  print("The GAPIT_genotype_map_numeric_filename parameter is NULL.")
+}
+
+# GAPIT genotype file path
+if (!is.null(yaml_dat$GAPIT_genotype_file_path)) {
+  GAPIT_genotype_file_path <- file.path(yaml_dat$GAPIT_genotype_file_path)
+  if(dir.exists(file.path(GAPIT_genotype_file_path))){
+    print(paste("GAPIT_genotype_file_path: ", GAPIT_genotype_file_path, sep = ""))
+  } else{
+    print("The GAPIT_genotype_file_path parameter is a file path that does not exists.")
+    quit(status = -1)
+  }
+} else{
+  GAPIT_genotype_file_path <- NULL
+  print("The GAPIT_genotype_file_path parameter is NULL.")
+}
+
+# GAPIT genotype file named sequentially from
+if (!is.null(yaml_dat$GAPIT_genotype_file_named_sequentially_from)) {
+  GAPIT_genotype_file_named_sequentially_from <- as.numeric(yaml_dat$GAPIT_genotype_file_named_sequentially_from)
+  print(paste("GAPIT_genotype_file_named_sequentially_from: ", GAPIT_genotype_file_named_sequentially_from, sep = ""))
+} else{
+  GAPIT_genotype_file_named_sequentially_from <- 0
+  print("The GAPIT_genotype_file_named_sequentially_from parameter is 0.")
+}
+
+# GAPIT genotype file named sequentially to
+if (!is.null(yaml_dat$GAPIT_genotype_file_named_sequentially_to)) {
+  GAPIT_genotype_file_named_sequentially_to <- as.numeric(yaml_dat$GAPIT_genotype_file_named_sequentially_to)
+  print(paste("GAPIT_genotype_file_named_sequentially_to: ", GAPIT_genotype_file_named_sequentially_to, sep = ""))
+} else{
+  GAPIT_genotype_file_named_sequentially_to <- 0
+  print("The GAPIT_genotype_file_named_sequentially_to parameter is 0.")
+}
+
+# GAPIT model
+if (!is.null(yaml_dat$GAPIT_model)) {
+  GAPIT_model <- yaml_dat$GAPIT_model
+  print(paste("GAPIT_model: ", GAPIT_model, sep = ""))
+} else{
+  GAPIT_model <- NULL
+  print("The GAPIT_model parameter is NULL.")
+}
+
+# GAPIT SNP.MAF
+if (!is.null(yaml_dat$GAPIT_SNP_MAF)) {
+  GAPIT_SNP_MAF <- as.numeric(yaml_dat$GAPIT_SNP_MAF)
+  if(is.na(GAPIT_SNP_MAF)) { GAPIT_SNP_MAF <- 0 }
+  print(paste("GAPIT_SNP_MAF: ", GAPIT_SNP_MAF, sep = ""))
+} else{
+  GAPIT_SNP_MAF <- 0
+  print("The GAPIT_SNP_MAF parameter is 0.")
+}
+
+# GAPIT PCA total
+if (!is.null(yaml_dat$GAPIT_PCA_total)) {
+  GAPIT_PCA_total <- as.numeric(yaml_dat$GAPIT_PCA_total)
+  if(is.na(GAPIT_PCA_total)) { GAPIT_PCA_total <- 0 }
+  print(paste("GAPIT_PCA_total: ", GAPIT_PCA_total, sep = ""))
+} else{
+  GAPIT_PCA_total <- 0
+  print("The GAPIT_PCA_total parameter is 0.")
+}
+
+# GAPIT Model selection
+if (!is.null(yaml_dat$GAPIT_Model_selection)) {
+  GAPIT_Model_selection <- as.logical(yaml_dat$GAPIT_Model_selection)
+  if(!is.logical(GAPIT_Model_selection) | is.na(GAPIT_Model_selection)) { GAPIT_Model_selection <- FALSE }
+  print(paste("GAPIT_Model_selection: ", GAPIT_Model_selection, sep = ""))
+} else{
+  GAPIT_Model_selection <- FALSE
+  print("The GAPIT_Model_selection parameter is FALSE.")
+}
+
+# GAPIT SNP test
+if (!is.null(yaml_dat$GAPIT_SNP_test)) {
+  GAPIT_SNP_test <- as.logical(yaml_dat$GAPIT_SNP_test)
+  if(!is.logical(GAPIT_SNP_test) | is.na(GAPIT_SNP_test)) { GAPIT_SNP_test <- FALSE }
+  print(paste("GAPIT_SNP_test: ", GAPIT_SNP_test, sep = ""))
+} else{
+  GAPIT_SNP_test <- FALSE
+  print("The GAPIT_SNP_test parameter is FALSE.")
+}
+
+# GAPIT file output
+if (!is.null(yaml_dat$GAPIT_file_output)) {
+  GAPIT_file_output <- as.logical(yaml_dat$GAPIT_file_output)
+  if(!is.logical(GAPIT_file_output) | is.na(GAPIT_file_output)) { GAPIT_file_output <- FALSE }
+  print(paste("GAPIT_file_output: ", GAPIT_file_output, sep = ""))
+} else{
+  GAPIT_file_output <- FALSE
+  print("The GAPIT_file_output parameter is FALSE.")
+}
+
+# GAPIT p.Value FDR threshold
+if (!is.null(yaml_dat$GAPIT_p_value_fdr_threshold)) {
+  GAPIT_p_value_fdr_threshold <- as.numeric(yaml_dat$GAPIT_p_value_fdr_threshold)
+  if(is.logical(GAPIT_p_value_fdr_threshold)){ GAPIT_p_value_fdr_threshold <- NA }
+  print(paste("GAPIT_p_value_fdr_threshold: ", GAPIT_p_value_fdr_threshold, sep = ""))
+} else{
+  GAPIT_p_value_fdr_threshold <- NA
+  print("The GAPIT_p_value_fdr_threshold parameter is NA.")
+}
+
+# GAPIT LD_number
+if (!is.null(yaml_dat$GAPIT_LD_number)) {
+  GAPIT_LD_number <- as.numeric(yaml_dat$GAPIT_LD_number)
+  print(paste("GAPIT_LD_number: ", GAPIT_LD_number, sep = ""))
+} else{
+  print("The GAPIT_LD_number parameter is NULL.")
+}
+
+cat(rep("\n", 2))
+## Import FarmCPU reference files
+# FarmCPU genotype data file
+FarmCPU_genotype_data <- read_file(file_path = yaml_dat$FarmCPU_genotype_data)
+if (is.null(FarmCPU_genotype_data)) {
+  print("The FarmCPU_genotype_data parameter is NULL.")
+} else{
+  print("FarmCPU_genotype_data has been loaded into memory.")
+}
+
+# FarmCPU genotype map file
+FarmCPU_genotype_map <- read_file(file_path = yaml_dat$FarmCPU_genotype_map)
+if (is.null(FarmCPU_genotype_map)) {
+  print("The FarmCPU_genotype_map parameter is NULL.")
+} else{
+  print("FarmCPU_genotype_map has been loaded into memory.")
+}
+
+# FarmCPU filter threshold p_value_threshold and p_value_fdr_threshold
+if (!is.null(yaml_dat$FarmCPU_p_value_threshold)) {
+  FarmCPU_p_value_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_threshold)
+  if(is.logical(FarmCPU_p_value_threshold)){ FarmCPU_p_value_threshold <- NA }
+  print(paste("FarmCPU_p_value_threshold: ", FarmCPU_p_value_threshold, sep = ""))
+} else{
+  FarmCPU_p_value_threshold <- NA
+  print("The FarmCPU_p_value_threshold parameter is NA.")
+}
+if (!is.null(yaml_dat$FarmCPU_p_value_fdr_threshold)) {
+  FarmCPU_p_value_fdr_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_fdr_threshold)
+  if(is.logical(FarmCPU_p_value_fdr_threshold)){ FarmCPU_p_value_fdr_threshold <- NA }
+  print(paste("FarmCPU_p_value_fdr_threshold: ", FarmCPU_p_value_fdr_threshold, sep = ""))
+} else{
+  FarmCPU_p_value_fdr_threshold <- NA
+  print("The FarmCPU_p_value_fdr_threshold parameter is NA.")
+}
+
+# FarmCPU LD_number
+if (!is.null(yaml_dat$FarmCPU_LD_number)) {
+  FarmCPU_LD_number <- as.numeric(yaml_dat$FarmCPU_LD_number)
+  print(paste("FarmCPU_LD_number: ", FarmCPU_LD_number, sep = ""))
+} else{
+  print("The FarmCPU_LD_number parameter is NULL.")
+}
+
+cat(rep("\n", 2))
+## Haploview
+# Haploview_file_path
+if (!is.null(yaml_dat$Haploview_file_path)) {
+  Haploview_file_path <- normalizePath(file.path(yaml_dat$Haploview_file_path))
+  if(dir.exists(file.path(Haploview_file_path))){
+    print(paste("Haploview_file_path: ", Haploview_file_path, sep = ""))
+  } else{
+    print("The Haploview_file_path parameter is a file path that does not exists.")
+    quit(status = -1)
+  }
+} else{
+  Haploview_file_path <- NULL
+  print("The Haploview_file_path parameter is NULL.")
+}
+
+# Haploview_file_name
+if (!is.null(yaml_dat$Haploview_file_name)) {
+  Haploview_file_name <- as.character(yaml_dat$Haploview_file_name)
+  print(paste("Haploview_file_name: ", Haploview_file_name, sep = ""))
+} else{
+  Haploview_file_name <- NULL
+  print("The Haploview_file_name parameter is NULL.")
+}
+
+# Haploview_file_extension
+if (!is.null(yaml_dat$Haploview_file_extension)) {
+  Haploview_file_extension <- as.character(yaml_dat$Haploview_file_extension)
+  print(paste("Haploview_file_extension: ", Haploview_file_extension, sep = ""))
+} else{
+  Haploview_file_extension <- NULL
+  print("The Haploview_file_extension parameter is NULL.")
+}
+
+# Haploview_file_named_sequentially_from
+if (!is.null(yaml_dat$Haploview_file_named_sequentially_from)) {
+  Haploview_file_named_sequentially_from <- as.numeric(yaml_dat$Haploview_file_named_sequentially_from)
+  print(paste("Haploview_file_named_sequentially_from: ", Haploview_file_named_sequentially_from, sep = ""))
+} else{
+  Haploview_file_named_sequentially_from <- NA
+  print("The Haploview_file_named_sequentially_from parameter is NA.")
+}
+
+# Haploview_file_named_sequentially_to
+if (!is.null(yaml_dat$Haploview_file_named_sequentially_to)) {
+  Haploview_file_named_sequentially_to <- as.numeric(yaml_dat$Haploview_file_named_sequentially_to)
+  print(paste("Haploview_file_named_sequentially_to: ", Haploview_file_named_sequentially_to, sep = ""))
+} else{
+  Haploview_file_named_sequentially_to <- NA
+  print("The Haploview_file_named_sequentially_to parameter is NA.")
+}
+
+cat(rep("\n", 2))
+## Match Gene Start and Gene Stop
+# GFF_file_path
+if (!is.null(yaml_dat$GFF_file_path)) {
+  GFF_file_path <- normalizePath(file.path(yaml_dat$GFF_file_path))
+  if(dir.exists(file.path(GFF_file_path))){
+    print(paste("GFF_file_path: ", GFF_file_path, sep = ""))
+  } else{
+    print("The GFF_file_path parameter is a file path that does not exists.")
+    quit(status = -1)
+  }
+} else{
+  GFF_file_path <- NULL
+  print("The GFF_file_path parameter is NULL.")
+}
+
+# GFF_file_name
+if (!is.null(yaml_dat$GFF_file_name)) {
+  GFF_file_name <- as.character(yaml_dat$GFF_file_name)
+  print(paste("GFF_file_name: ", GFF_file_name, sep = ""))
+} else{
+  GFF_file_name <- NULL
+  print("The GFF_file_name parameter is NULL.")
+}
+
+# GFF_file_extension
+if (!is.null(yaml_dat$GFF_file_extension)) {
+  GFF_file_extension <- as.character(yaml_dat$GFF_file_extension)
+  print(paste("GFF_file_extension: ", GFF_file_extension, sep = ""))
+} else{
+  GFF_file_extension <- NULL
+  print("The GFF_file_extension parameter is NULL.")
+}
+
+# GFF_file_named_sequentially_from
+if (!is.null(yaml_dat$GFF_file_named_sequentially_from)) {
+  GFF_file_named_sequentially_from <- as.numeric(yaml_dat$GFF_file_named_sequentially_from)
+  print(paste("GFF_file_named_sequentially_from: ", GFF_file_named_sequentially_from, sep = ""))
+} else{
+  GFF_file_named_sequentially_from <- NA
+  print("The GFF_file_named_sequentially_from parameter is NA.")
+}
+
+# GFF_file_named_sequentially_to
+if (!is.null(yaml_dat$GFF_file_named_sequentially_to)) {
+  GFF_file_named_sequentially_to <- as.numeric(yaml_dat$GFF_file_named_sequentially_to)
+  print(paste("GFF_file_named_sequentially_to: ", GFF_file_named_sequentially_to, sep = ""))
+} else{
+  GFF_file_named_sequentially_to <- NA
+  print("The GFF_file_named_sequentially_to parameter is NA.")
+}
+
+cat(rep("\n", 2))
+## Create output folder
+if (!is.null(yaml_dat$output)) {
+  if (!dir.exists(file.path(yaml_dat$output))) {
+    dir.create(path = file.path(yaml_dat$output), showWarnings = TRUE, recursive = TRUE)
+    if (dir.exists(file.path(yaml_dat$output))) {
+      output <- normalizePath(file.path(yaml_dat$output))
+      print(paste0("The output folder is created. Output path: ", output))
+    } else{
+      print("The output folder cannot be created.")
+      quit(status = -1)
+    }
+  } else{
+    output <- normalizePath(file.path(yaml_dat$output))
+    print(paste0("The output folder exists. Output path: ", output))
+  }
+} else{
+  print("The output parameter is NULL.")
+  quit(status = -1)
+}
+
+cat(rep("\n", 2))
+
+#######################################################################
+## Run action base on arguments
+#######################################################################
+
+# removeDuplicates
+if (all("-removeDuplicates" %in% args)) {
+  index <- match("-removeDuplicates", args)
+  print(paste(index, ": removeDuplicates", sep = ""))
+
+  if (exists("raw_data") & exists("by_column") & exists("start_column") & dir.exists(output)) {
+
+    folder_path <- file.path(output, "removeDuplicates")
+
+    if (!dir.exists(folder_path)) {
+      dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The removeDuplicates folder exists.")
+    }
+
+    # Using customized function to remove duplicates
+    raw_data <- remove_duplicates(dat = raw_data, by_column = by_column)
+
+    write.csv(x = raw_data, file = file.path(folder_path, "raw_data.csv"), row.names = TRUE, na = "")
+  }
+}
+
+# outlierRemoval
+if (all("-outlierRemoval" %in% args)) {
+  index <- match("-outlierRemoval", args)
+  print(paste(index, ": outlierRemoval", sep = ""))
+
+  if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+
+    folder_path <- file.path(output, "outlierRemoval")
+
+    if (!dir.exists(folder_path)) {
+      dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The outlierRemoval folder exists.")
+    }
+
+    # Using customized function to remove outliers
+    results <- outlier_removal(dat = raw_data, by_column = by_column, start_column = start_column)
+
+    if (is.list(results)) {
+      raw_data <- results$Outlier_removed_data
+
+      capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
+      write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
+      write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
+    } else{
+      raw_data <- results
+
+      write.csv(x = results, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
+      print("No outlier has been found!!!")
+    }
+
+  }
+}
+
+# boxcoxTransformation
+if (all("-boxcoxTransformation" %in% args)) {
+  index <- match("-boxcoxTransformation", args)
+  print(paste(index, ": boxcoxTransformation", sep = ""))
+
+  if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+
+    folder_path <- file.path(output, "boxcoxTransformation")
+
+    if (!dir.exists(folder_path)) {
+      dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The boxcoxTransformation folder exists.")
+    }
+
+    # Using customized function to perform box-cox transformation
+    results <- boxcox_transformation(dat = raw_data, by_column = by_column, start_column = start_column)
+
+    if (is.list(results)) {
+      raw_data <- results$Boxcox_transformed_data
+
+      write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
+      write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
+    } else{
+      raw_data <- results
+
+      print("No lambda found!!! Data returned without transformed!!!")
+    }
+
+  }
+}
+
+# generateBLUP
+if (all("-generateBLUP" %in% args)) {
+  index <- match("-generateBLUP", args)
+  print(paste(index, ": generateBLUP", sep = ""))
+
+  if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+
+    folder_path <- file.path(output, "generateBLUP")
+
+    if (!dir.exists(folder_path)) {
+      dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The generateBLUP folder exists.")
+    }
+
+    # Using customized function to generate BLUP
+    results <-
+      generate_BLUP(dat = raw_data, by_column = by_column, start_column = start_column)
+
+    if (is.list(results)) {
+      BLUP <- results$BLUP
+      BLUP_by_column <- 1
+      BLUP_start_column <- 2
+
+      write.csv( x = results$BLUP, file = file.path(folder_path, "BLUP.csv"), row.names = FALSE, na = "" )
+    } else{
+      print("No BLUP generated!!!")
+    }
+
+  }
+}
+
+# GAPIT
+if (all("-GAPIT" %in% args)) {
+  index <- match("-GAPIT", args)
+  print(paste(index, ": GAPIT", sep = ""))
+
+  if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") &
+      exists("GAPIT_LD_number") & GAPIT_LD_number >= 0 & dir.exists(output)) {
+
+    folder_path <- file.path(output, "GAPIT")
+
+    if (!dir.exists(folder_path)) {
+      dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The GAPIT folder exists.")
+    }
+
+    # Using customized function to run GAPIT
+    combined_gwas_result <-
+      farming_with_GAPIT(
+        dat = BLUP,
+        by_column = BLUP_by_column,
+        start_column = BLUP_start_column,
+        output_path = folder_path,
+        p_value_fdr_threshold = GAPIT_p_value_fdr_threshold,
+        ld_number = GAPIT_LD_number,
+        KI = GAPIT_kinship_matrix,
+        CV = GAPIT_covariates,
+        G = GAPIT_hapmap,
+        GD = GAPIT_genotype_data_numeric,
+        GM = GAPIT_genotype_map_numeric,
+        file.Ext.G = GAPIT_hapmap_file_extension,
+        file.Ext.GD = GAPIT_genotype_data_numeric_file_extension,
+        file.Ext.GM = GAPIT_genotype_map_numeric_file_extension,
+        file.G = GAPIT_hapmap_filename,
+        file.GD = GAPIT_genotype_data_numeric_filename,
+        file.GM = GAPIT_genotype_map_numeric_filename,
+        file.path = GAPIT_genotype_file_path,
+        file.from = GAPIT_genotype_file_named_sequentially_from,
+        file.to = GAPIT_genotype_file_named_sequentially_to,
+        model = GAPIT_model,
+        SNP.MAF = GAPIT_SNP_MAF,
+        PCA.total = GAPIT_PCA_total,
+        Model.selection = GAPIT_Model_selection,
+        SNP.test = GAPIT_SNP_test,
+        file.output = GAPIT_file_output
+      )
+
+      # if combined_gwas_result is not null and other requirements are satisfied then extract haplotype
+      if(!is.null(combined_gwas_result) & !is.null(Haploview_file_path) & !is.null(Haploview_file_name) & 
+          !is.null(Haploview_file_extension) & !is.na(Haploview_file_named_sequentially_from) & 
+          !is.na(Haploview_file_named_sequentially_to)){
+            combined_gwas_result <- extract_haplotype(
+              combined_gwas_result = combined_gwas_result,
+              output_path = folder_path, 
+              Haploview_file_path = Haploview_file_path, 
+              Haploview_file_name = Haploview_file_name, 
+              Haploview_file_extension = Haploview_file_extension, 
+              Haploview_file_named_sequentially_from = Haploview_file_named_sequentially_from, 
+              Haploview_file_named_sequentially_to = Haploview_file_named_sequentially_to
+            )
       }
 
-    } else{
-      print("The yaml data was not read into the work space!!!")
+      # if combined_gwas_result is not null and other requirements are satisfied then search genes
+      if(!is.null(combined_gwas_result) & !is.null(GFF_file_path) & !is.null(GFF_file_name) & 
+          !is.null(GFF_file_extension) & !is.na(GFF_file_named_sequentially_from) & 
+          !is.na(GFF_file_named_sequentially_to)){
+            combined_gwas_result <- search_genes(
+              combined_gwas_result = combined_gwas_result,
+              output_path = folder_path, 
+              GFF_file_path = GFF_file_path, 
+              GFF_file_name = GFF_file_name, 
+              GFF_file_extension = GFF_file_extension, 
+              GFF_file_named_sequentially_from = GFF_file_named_sequentially_from, 
+              GFF_file_named_sequentially_to = GFF_file_named_sequentially_to
+            )
+      }
+  }
+}
+
+# FarmCPU
+if (all("-farmCPU" %in% args)) {
+  index <- match("-farmCPU", args)
+  print(paste(index, ": farmCPU", sep = ""))
+
+  if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") &
+      exists("FarmCPU_genotype_data") & !is.null(FarmCPU_genotype_data) &
+      exists("FarmCPU_genotype_map") & !is.null(FarmCPU_genotype_map) &
+      exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) &
+      exists("FarmCPU_LD_number") & FarmCPU_LD_number >= 0 & dir.exists(output)) {
+
+    # Check BLUP file and genotype file
+    if (sum(match(BLUP[,1], FarmCPU_genotype_data[,1]), na.rm = TRUE) == 0) {
+      print(paste0("Elements in ", colnames(BLUP)[1], " column of BLUP file does not able to match with any element in ",
+                    colnames(FarmCPU_genotype_data)[1], " column of genotype file."))
       quit(status = -1)
     }
 
-    #######################################################################
-    ## Check args and run action based on args
-    #######################################################################
+    folder_path <- file.path(output, "FarmCPU")
 
-    # removeDuplicates
-    if (all("-removeDuplicates" %in% args)) {
-      index <- match("-removeDuplicates", args)
-      print(paste(index, ": removeDuplicates", sep = ""))
-
-      if (exists("raw_data") & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-        folder_path <- file.path(output, "removeDuplicates")
-
-        if (!dir.exists(folder_path)) {
-          dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
-        } else{
-          print("The removeDuplicates folder exists.")
-        }
-
-        # Using customized function to remove duplicates
-        raw_data <- remove_duplicates(dat = raw_data, by_column = by_column)
-
-        write.csv(x = raw_data, file = file.path(folder_path, "raw_data.csv"), row.names = TRUE, na = "")
-      }
+    if (!dir.exists(folder_path)) {
+      dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The FarmCPU folder exists.")
     }
 
-    # outlierRemoval
-    if (all("-outlierRemoval" %in% args)) {
-      index <- match("-outlierRemoval", args)
-      print(paste(index, ": outlierRemoval", sep = ""))
+    # Using customized function to run FarmCPU
+    results <-
+      farming_with_FarmCPU(
+        dat = BLUP,
+        by_column = BLUP_by_column,
+        start_column = BLUP_start_column,
+        output_path = folder_path,
+        p_value_threshold = FarmCPU_p_value_threshold,
+        p_value_fdr_threshold = FarmCPU_p_value_fdr_threshold,
+        ld_number = FarmCPU_LD_number,
+        GD = FarmCPU_genotype_data,
+        GM = FarmCPU_genotype_map,
+        hapmap_numeric = hapmap_numeric,
+        gff = gff
+      )
 
-      if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-        folder_path <- file.path(output, "outlierRemoval")
-
-        if (!dir.exists(folder_path)) {
-          dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
-        } else{
-          print("The outlierRemoval folder exists.")
-        }
-
-        # Using customized function to remove outliers
-        results <- outlier_removal(dat = raw_data, by_column = by_column, start_column = start_column)
-
-        if (is.list(results)) {
-          raw_data <- results$Outlier_removed_data
-
-          capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
-          write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
-          write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
-        } else{
-          raw_data <- results
-
-          write.csv(x = results, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
-          print("No outlier has been found!!!")
-        }
-
-      }
-    }
-
-    # boxcoxTransformation
-    if (all("-boxcoxTransformation" %in% args)) {
-      index <- match("-boxcoxTransformation", args)
-      print(paste(index, ": boxcoxTransformation", sep = ""))
-
-      if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-        folder_path <- file.path(output, "boxcoxTransformation")
-
-        if (!dir.exists(folder_path)) {
-          dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
-        } else{
-          print("The boxcoxTransformation folder exists.")
-        }
-
-        # Using customized function to perform box-cox transformation
-        results <- boxcox_transformation(dat = raw_data, by_column = by_column, start_column = start_column)
-
-        if (is.list(results)) {
-          raw_data <- results$Boxcox_transformed_data
-
-          write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
-          write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
-        } else{
-          raw_data <- results
-
-          print("No lambda found!!! Data returned without transformed!!!")
-        }
-
-      }
-    }
-
-    # generateBLUP
-    if (all("-generateBLUP" %in% args)) {
-      index <- match("-generateBLUP", args)
-      print(paste(index, ": generateBLUP", sep = ""))
-
-      if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-        folder_path <- file.path(output, "generateBLUP")
-
-        if (!dir.exists(folder_path)) {
-          dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
-        } else{
-          print("The generateBLUP folder exists.")
-        }
-
-        # Using customized function to generate BLUP
-        results <-
-          generate_BLUP(dat = raw_data, by_column = by_column, start_column = start_column)
-
-        if (is.list(results)) {
-          BLUP <- results$BLUP
-          BLUP_by_column <- 1
-          BLUP_start_column <- 2
-
-          write.csv( x = results$BLUP, file = file.path(folder_path, "BLUP.csv"), row.names = FALSE, na = "" )
-        } else{
-          print("No BLUP generated!!!")
-        }
-
-      }
-    }
-
-    # GAPIT
-    if (all("-GAPIT" %in% args)) {
-      index <- match("-GAPIT", args)
-      print(paste(index, ": GAPIT", sep = ""))
-
-      if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") &
-          exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) &
-          exists("GAPIT_LD_number") & GAPIT_LD_number >= 0 & dir.exists(output)) {
-
-        folder_path <- file.path(output, "GAPIT")
-
-        if (!dir.exists(folder_path)) {
-          dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
-        } else{
-          print("The GAPIT folder exists.")
-        }
-
-        # Using customized function to run GAPIT
-        results <-
-          farming_with_GAPIT(
-            dat = BLUP,
-            by_column = BLUP_by_column,
-            start_column = BLUP_start_column,
-            output_path = folder_path,
-            p_value_fdr_threshold = GAPIT_p_value_fdr_threshold,
-            ld_number = GAPIT_LD_number,
-            KI = GAPIT_kinship_matrix,
-            CV = GAPIT_covariates,
-            G = GAPIT_hapmap,
-            GD = GAPIT_genotype_data_numeric,
-            GM = GAPIT_genotype_map_numeric,
-            file.Ext.G = GAPIT_hapmap_file_extension,
-            file.Ext.GD = GAPIT_genotype_data_numeric_file_extension,
-            file.Ext.GM = GAPIT_genotype_map_numeric_file_extension,
-            file.G = GAPIT_hapmap_filename,
-            file.GD = GAPIT_genotype_data_numeric_filename,
-            file.GM = GAPIT_genotype_map_numeric_filename,
-            file.path = GAPIT_genotype_file_path,
-            file.from = GAPIT_genotype_file_named_sequentially_from,
-            file.to = GAPIT_genotype_file_named_sequentially_to,
-            model = GAPIT_model,
-            SNP.MAF = GAPIT_SNP_MAF,
-            PCA.total = GAPIT_PCA_total,
-            Model.selection = GAPIT_Model_selection,
-            SNP.test = GAPIT_SNP_test,
-            file.output = GAPIT_file_output,
-            hapmap_numeric = hapmap_numeric,
-            gff = gff
-          )
-      }
-    }
-
-    # FarmCPU
-    if (all("-farmCPU" %in% args)) {
-      index <- match("-farmCPU", args)
-      print(paste(index, ": farmCPU", sep = ""))
-
-      if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") &
-          exists("FarmCPU_genotype_data") & !is.null(FarmCPU_genotype_data) &
-          exists("FarmCPU_genotype_map") & !is.null(FarmCPU_genotype_map) &
-          exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) &
-          exists("FarmCPU_LD_number") & FarmCPU_LD_number >= 0 & dir.exists(output)) {
-
-        # Check BLUP file and genotype file
-        if (sum(match(BLUP[,1], FarmCPU_genotype_data[,1]), na.rm = TRUE) == 0) {
-          print(paste0("Elements in ", colnames(BLUP)[1], " column of BLUP file does not able to match with any element in ",
-                       colnames(FarmCPU_genotype_data)[1], " column of genotype file."))
-          quit(status = -1)
-        }
-
-        folder_path <- file.path(output, "FarmCPU")
-
-        if (!dir.exists(folder_path)) {
-          dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
-        } else{
-          print("The FarmCPU folder exists.")
-        }
-
-        # Using customized function to run FarmCPU
-        results <-
-          farming_with_FarmCPU(
-            dat = BLUP,
-            by_column = BLUP_by_column,
-            start_column = BLUP_start_column,
-            output_path = folder_path,
-            p_value_threshold = FarmCPU_p_value_threshold,
-            p_value_fdr_threshold = FarmCPU_p_value_fdr_threshold,
-            ld_number = FarmCPU_LD_number,
-            GD = FarmCPU_genotype_data,
-            GM = FarmCPU_genotype_map,
-            hapmap_numeric = hapmap_numeric,
-            gff = gff
-          )
-
-      }
-    }
-
-  } else{
-    print("No action is required to perform!!!")
-
-    # Print help file here
   }
-
-} else{
-  print("YAML file does not exists!!!")
 }
+
 
 cat(rep("\n", 2));print("-------------------- GWAS1001 Stop --------------------");cat(rep("\n", 2));
