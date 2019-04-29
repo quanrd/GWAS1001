@@ -97,8 +97,28 @@ for (i in 1:length(foldernames)) {
 
 
 
-# Create this yaml file 
+# Create Demo.yaml file 
+filename <- "Demo.yaml"
+dat <- readLines(con = filename)
+writeLines(dat, con = file.path("..", filename))
+if (file.exists(file.path("..", filename))) {
+  print(paste(filename, " has been created!!!", sep = ""))
+} else{
+  print(paste(filename, " cannot be created!!!", sep = ""))
+}
+
+# Create required_data.yaml file 
 filename <- "required_data.yaml"
+dat <- readLines(con = filename)
+writeLines(dat, con = file.path("..", filename))
+if (file.exists(file.path("..", filename))) {
+  print(paste(filename, " has been created!!!", sep = ""))
+} else{
+  print(paste(filename, " cannot be created!!!", sep = ""))
+}
+
+# Create Arabidopsis1001.yaml file 
+filename <- "Arabidopsis1001.yaml"
 dat <- readLines(con = filename)
 writeLines(dat, con = file.path("..", filename))
 if (file.exists(file.path("..", filename))) {
