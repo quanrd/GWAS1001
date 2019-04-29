@@ -51,18 +51,6 @@ invisible(lapply(bioc_packages, FUN = function(x){
 }))
 
 
-# The packages here are from BiocManager
-github_packages <- c("ggbiplot")
-
-# Check packages and install them if needed
-invisible(lapply(github_packages, FUN = function(x){
-  if (!require(x, character.only = TRUE)) {
-    install_github("vqv/ggbiplot", lib = p)
-    library(x, lib.loc = p, character.only = TRUE)
-  }
-}))
-
-
 
 # Print this after all packages are successfully installed
 loaded_packages <- sessionInfo()
