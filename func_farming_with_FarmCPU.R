@@ -2,7 +2,9 @@
 ## farming with FarmCPU
 farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_path, 
                                  p_value_threshold = NA, p_value_fdr_threshold = NA, ld_number = 0, 
-                                 genotype, SNPs, hapmap, gff) {
+                                 GD = NULL, 
+                                 GM = NULL, 
+                                 hapmap_numeric, gff) {
   
   #######################################################################
   ## Create folders to store outputs
@@ -45,8 +47,8 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
   for (i in start_column:ncol(dat)){
     farmCPU_result <- FarmCPU(
       Y = dat[,c(1,i)],
-      GD = genotype,
-      GM = SNPs,
+      GD = GD,
+      GM = GM,
       MAF.calculate = TRUE,
       maf.threshold = 0.05,
       method.bin="optimum",
@@ -100,12 +102,147 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     temp_gwas_result$LD_number <- ld_number
     temp_gwas_result$LD_start <- temp_gwas_result$Position-ld_number
     temp_gwas_result$LD_end <- temp_gwas_result$Position+ld_number
-    
-    temp_gwas_result_row_number <- nrow(temp_gwas_result)
-    
+    temp_gwas_result$Haploblock_number <- NA
+    temp_gwas_result$Haploblock_start <- NA
+    temp_gwas_result$Haploblock_stop <- NA
+
+    # For each row in each table
+    j <- 1
+    while(j <= nrow(temp_gwas_result)){
+
+      # Clear temp_hapmap_numeric because we might use it later
+      temp_hapmap_numeric <- data.frame()
+
+      if(!is.na(temp_gwas_result$LD_start[j]) & !is.na(temp_gwas_result$LD_end[j])){
+
+        # Change colnames of hapmap_numeric
+        colnames(hapmap_numeric)[1] <- "Chromosome"
+        colnames(hapmap_numeric)[2] <- "Positions"
+
+        # Create a temporary hapmap_numeric from chromosome, LD start, and LD stop
+        temp_hapmap_numeric <- hapmap_numeric[(hapmap_numeric$Positions >= temp_gwas_result$LD_start[j] & 
+                              hapmap_numeric$Positions <= temp_gwas_result$LD_end[j] & 
+                              hapmap_numeric$Chromosome == temp_gwas_result$Chromosome[j]), ]
+
+        # If column names are integer, the system will append "X" in front of each column name
+        # This step is to remove the "X" from all integer column names
+        if(all(startsWith(colnames(temp_hapmap_numeric)[3:ncol(temp_hapmap_numeric)], "X"))){
+          colnames(temp_hapmap_numeric)[3:ncol(temp_hapmap_numeric)] <- gsub("[[:alpha:]]", "", colnames(temp_hapmap_numeric)[3:ncol(temp_hapmap_numeric)])
+        }
+
+        if(nrow(temp_hapmap_numeric) > 0){
+          # Put positions to info file
+          info <- data.frame(temp_hapmap_numeric$Positions, temp_hapmap_numeric$Positions)
+
+          # Remove Chromosome and Positions columns
+          temp_hapmap_numeric <- temp_hapmap_numeric[, c(-1, -2)]
+
+          # Prepare ped file
+          ibd <- paste("IBD",1:ncol(temp_hapmap_numeric), sep = "")
+          ped <- rbind(temp_hapmap_numeric[0,], ibd, 0, 0, 7, 1, temp_hapmap_numeric[c(1:nrow(temp_hapmap_numeric)),])
+          ped <- t(ped)
+
+          filename <- paste0(temp_gwas_result$Trait[j], "_", temp_gwas_result$SNP_ID[j], "_", 
+                            temp_gwas_result$Chromosome[j], "_", temp_gwas_result$LD_start[j], "-", 
+                            temp_gwas_result$LD_end[j])
+
+          # Name ped and info file
+          ped_file_name <- paste0(filename, ".ped")
+          info_file_name <- paste0(filename, ".info")
+
+          # Save info and ped file
+          write.table(info, file.path(ped_and_info_save_path, info_file_name), sep = '\t', row.names = FALSE, col.names = FALSE, quote=FALSE)
+          write.table(ped, file.path(ped_and_info_save_path, ped_file_name), sep = '\t', row.names = TRUE, col.names = FALSE, quote=FALSE)
+        
+          # Prepare the Haploview command
+          ld_data_command <- paste("java -jar ", file.path(current_working_directory, "Haploview.jar"), 
+                                   " -n -out ", file.path(ld_data_save_path, filename), 
+                                   " -pedfile ", file.path(ped_and_info_save_path, ped_file_name), 
+                                   " -info ", file.path(ped_and_info_save_path, info_file_name), 
+                                   " -skipcheck -dprime -png -ldcolorscheme DEFAULT -ldvalues DPRIME -blockoutput GAB -minMAF 0.05", 
+                                   sep = "")
+          
+          # Run Haploview
+          system(ld_data_command)
+
+          # Move all the plots into their specific folders
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD.PNG", sep = "")))){
+            system(paste("mv", file.path(ld_data_save_path, paste(filename, ".LD.PNG", sep = "")), ld_plot_save_path, sep = " "))
+          }
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".GABRIELblocks", sep = "")))){
+            system(paste("mv", file.path(ld_data_save_path, paste(filename, ".GABRIELblocks", sep = "")), haplotypes_gabriel_blocks_save_path, sep = " "))
+          }
+
+          # Read in LD_data and gabriel_block_string
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD", sep = "")))){
+            LD_data <- try(read.table(file.path(ld_data_save_path, paste(filename, ".LD", sep = "")), check.names = FALSE, header = TRUE))
+          }
+          if(file.exists(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = "")))){
+            gabriel_block_string <- try(readLines(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = ""))))
+          }
+
+          if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD", sep = ""))) & 
+            file.exists(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = ""))) & 
+            !identical(gabriel_block_string, character(0))){
+
+            # Get Haploblock start and stop
+            ld <- sort(unique(c(LD_data[,1], LD_data[,2])))
+
+            # Parse gabriel blocks data
+            gbb <- list()
+            for (k in 1:length(gabriel_block_string)) {
+              if(grepl("MARKERS: ", gabriel_block_string[k], ignore.case = TRUE)){
+                gbb <- append(gbb, strsplit(x = gsub(".*MARKERS: ", "" , gabriel_block_string[k]), split = " "))
+              }
+            }
+
+            # Get all the start and stop of markers from ld and gbb
+            for(m in 1:length(gbb)){
+              for (n in 1:length(gbb[[m]])) {
+                gbb[[m]][n] <- as.numeric(ld[as.integer(gbb[[m]][n])])
+              }
+            }
+
+            # Write the number of haploblocks to the corresponding row of Haploblock_number column
+            temp_gwas_result$Haploblock_number[j] <- as.numeric(length(gbb))
+
+            # # Put all the markers start and stop to the gwas results
+            # for(m in 1:length(gbb)){
+            #   if(m == 1){
+            #     temp_gwas_result$Haploblock_start[j] <- as.numeric(gbb[[m]][1])
+            #     temp_gwas_result$Haploblock_stop[j] <- as.numeric(gbb[[m]][length(gbb[[m]])])
+            #   } else if(m > 1){
+            #     temp_gwas_result <- InsertRow(temp_gwas_result, NewRow = temp_gwas_result[j,], RowNum = j+1)
+            #     j <- j + 1
+            #     temp_gwas_result$Haploblock_start[j] <- as.numeric(gbb[[m]][1])
+            #     temp_gwas_result$Haploblock_stop[j] <- as.numeric(gbb[[m]][length(gbb[[m]])])
+            #   }
+            #   # Remove any row that contains all NA
+            #   temp_gwas_result <- temp_gwas_result[rowSums(is.na(temp_gwas_result)) != ncol(temp_gwas_result),]
+            # }
+
+            # Write the Haploblock_start and Haploblock_stop that enclose the position
+            for(m in 1:length(gbb)){
+              if(temp_gwas_result$Position[j] >= as.numeric(gbb[[m]][1]) & temp_gwas_result$Position[j] <= as.numeric(gbb[[m]][length(gbb[[m]])]) ){
+                temp_gwas_result$Haploblock_start[j] <- as.numeric(gbb[[m]][1])
+                temp_gwas_result$Haploblock_stop[j] <- as.numeric(gbb[[m]][length(gbb[[m]])])
+              }
+            }
+
+          }
+        }
+      }
+
+      # Update counter for the while loop
+      j <- j + 1
+    }
+
+    # Remove any row that contains all NA
+    temp_gwas_result <- temp_gwas_result[rowSums(is.na(temp_gwas_result)) != ncol(temp_gwas_result),]
+
     gwas_result_list[[i]] <- temp_gwas_result
   }
-  
+
   #######################################################################
   ## Save all GWAS Results
   #######################################################################
@@ -115,5 +252,121 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
     write.csv(gwas_result_list[[i]], file.path(farmCPU_significant_save_path, gwas_result_filename), row.names = FALSE)
   }
   
+  #######################################################################
+  ## Find gene based on Haploblock start and stop or LD start and stop
+  #######################################################################
+
+  for (i in 1:length(gwas_result_list)) {
+    temp_gwas_result <- gwas_result_list[[i]]
+
+    temp_gwas_result$Gene_name <- NA
+    temp_gwas_result$Gene_start <- NA
+    temp_gwas_result$Gene_stop <- NA
+    temp_gwas_result$Gene_description <- NA
+
+    # For each row in each table
+    j <- 1
+    while(j <= nrow(temp_gwas_result)){
+
+      temp_gff <- data.frame()
+
+      if(nrow(gff) > 1 & !is.na(temp_gwas_result$Haploblock_start[j]) & !is.na(temp_gwas_result$Haploblock_stop[j])){
+        # Match with chromosome
+        temp_gff <- gff[as.character(gff[,1]) %in% as.character(temp_gwas_result$Chromosome[j]), ]
+
+        # Match gff with Haploblock start and stop
+        if(nrow(temp_gff) > 0){
+          temp_gff <- temp_gff[(
+            temp_gff[,4] < temp_gwas_result$Haploblock_start[j] & 
+            temp_gff[,4] < temp_gwas_result$Haploblock_stop[j] & 
+            temp_gff[,5] > temp_gwas_result$Haploblock_start[j]
+          ) | (
+            temp_gff[,4] < temp_gwas_result$Haploblock_stop[j] & 
+            temp_gff[,5] > temp_gwas_result$Haploblock_start[j] & 
+            temp_gff[,5] > temp_gwas_result$Haploblock_stop[j]
+          ) | (
+            temp_gff[,4] > temp_gwas_result$Haploblock_start[j] & 
+            temp_gff[,5] < temp_gwas_result$Haploblock_stop[j]
+          ) | (
+            temp_gff[,4] < temp_gwas_result$Haploblock_start[j] & 
+            temp_gff[,4] < temp_gwas_result$Haploblock_stop[j] & 
+            temp_gff[,5] > temp_gwas_result$Haploblock_start[j] & 
+            temp_gff[,5] > temp_gwas_result$Haploblock_stop[j]
+          ),]
+        }
+
+      } else if(nrow(gff) > 1 & !is.na(temp_gwas_result$LD_start[j]) & !is.na(temp_gwas_result$LD_end[j])){
+        # Match with chromosome
+        temp_gff <- gff[as.character(gff[,1]) %in% as.character(temp_gwas_result$Chromosome[j]), ]
+
+        # Match gff with LD start and stop when Haploblock start and stop are NA
+        if(nrow(temp_gff) > 0){
+          temp_gff <- temp_gff[(
+            temp_gff[,4] < temp_gwas_result$LD_start[j] & 
+            temp_gff[,4] < temp_gwas_result$LD_end[j] & 
+            temp_gff[,5] > temp_gwas_result$LD_start[j]
+          ) | (
+            temp_gff[,4] < temp_gwas_result$LD_end[j] & 
+            temp_gff[,5] > temp_gwas_result$LD_start[j] & 
+            temp_gff[,5] > temp_gwas_result$LD_end[j]
+          ) | (
+            temp_gff[,4] > temp_gwas_result$LD_start[j] & 
+            temp_gff[,5] < temp_gwas_result$LD_end[j]
+          ) | (
+            temp_gff[,4] < temp_gwas_result$LD_start[j] & 
+            temp_gff[,4] < temp_gwas_result$LD_end[j] & 
+            temp_gff[,5] > temp_gwas_result$LD_start[j] & 
+            temp_gff[,5] > temp_gwas_result$LD_end[j]
+          ),]
+        }
+
+      }
+
+      # If the results after matching have at least 1 row, write all the results to temp_gwas_result
+      if(nrow(temp_gff) > 0){
+        for(m in 1:nrow(temp_gff)){
+
+          if(m == 1){
+            temp_gwas_result$Gene_name[j] <- temp_gff[m,9]
+            temp_gwas_result$Gene_start[j] <- temp_gff[m,4]
+            temp_gwas_result$Gene_stop[j] <- temp_gff[m,5]
+            temp_gwas_result$Gene_description[j] <- temp_gff[m,11]
+          } else if(m > 1){
+            temp_gwas_result <- InsertRow(temp_gwas_result, NewRow = temp_gwas_result[j,], RowNum = j+1)
+            j <- j + 1
+            temp_gwas_result$Gene_name[j] <- temp_gff[m,9]
+            temp_gwas_result$Gene_start[j] <- temp_gff[m,4]
+            temp_gwas_result$Gene_stop[j] <- temp_gff[m,5]
+            temp_gwas_result$Gene_description[j] <- temp_gff[m,11]
+          }
+
+          # Remove any row that contains all NA
+          temp_gwas_result <- temp_gwas_result[rowSums(is.na(temp_gwas_result)) != ncol(temp_gwas_result),]
+        }
+      }
+
+      # Update the counter
+      j <- j + 1
+    }
+
+    # Remove any row that contains all NA
+    temp_gwas_result <- temp_gwas_result[rowSums(is.na(temp_gwas_result)) != ncol(temp_gwas_result),]
+
+    gwas_result_list[[i]] <- temp_gwas_result
+  }
+
+  #######################################################################
+  ## Save all GWAS Results
+  #######################################################################
+  
+  for (i in 1:length(gwas_result_list)) {
+    gwas_result_filename <- paste("FarmCPU.", names(gwas_result_list)[i], ".GWAS.Results.csv", sep = "")
+    write.csv(gwas_result_list[[i]], file.path(farmCPU_significant_save_path, gwas_result_filename), row.names = FALSE)
+  }
+  
+  combined_gwas_result <- rbindlist(gwas_result_list)
+  gwas_result_filename <- paste("FarmCPU.combined.GWAS.Results.csv", sep = "")
+  write.csv(combined_gwas_result, file.path(getwd(), output_path, gwas_result_filename), row.names = FALSE)
+
   return(0)
 }

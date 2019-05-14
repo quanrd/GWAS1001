@@ -1,0 +1,192 @@
+## Search genes from gff files
+search_genes <- function(combined_gwas_result, 
+                            output_path, 
+                            GFF_file_path = NULL, 
+                            GFF_file_name = NULL, 
+                            GFF_file_extension = NULL, 
+                            GFF_file_named_sequentially_from = NULL, 
+                            GFF_file_named_sequentially_to = NULL) {
+
+    #######################################################################
+    ## Create folders to store outputs
+    #######################################################################
+
+    auto_save_path <- file.path(output_path, "GAPIT_auto_output")
+    GAPIT_manhattan_plot_save_path <- file.path(output_path, "GAPIT_Manhattan_Plot")
+    GAPIT_qq_plot_save_path <- file.path(output_path, "GAPIT_QQ_Plot")
+    GAPIT_significant_save_path <- file.path(output_path, "GAPIT_significant")
+    ped_and_info_save_path <- file.path(output_path, "Haploview_PEDandINFO")
+    ld_data_save_path <- file.path(output_path, "Haploview_LD_data")
+    ld_plot_save_path <- file.path(output_path, "Haploview_LD_plot")
+    haplotypes_gabriel_blocks_save_path <- file.path(output_path, "Haploview_Haplotypes_gabriel_blocks")
+    gff_save_path <- file.path(output_path, "GFF")
+
+    temp <- c(auto_save_path, GAPIT_manhattan_plot_save_path, GAPIT_qq_plot_save_path, GAPIT_significant_save_path, 
+    ped_and_info_save_path, ld_data_save_path, ld_plot_save_path, haplotypes_gabriel_blocks_save_path, gff_save_path)
+
+    for (i in 1:length(temp)) {
+        if (!dir.exists(temp[i])){
+            try(dir.create(temp[i]))
+        }
+    }
+
+    #######################################################################
+    ## Create GFF reference file path and put everything in a table
+    #######################################################################
+
+    GFF_file_table <- tryCatch({
+        data.frame(
+            "Chromosome" = GFF_file_named_sequentially_from:GFF_file_named_sequentially_to, 
+            "File_path" = file.path(GFF_file_path, 
+                                    paste0(GFF_file_name, 
+                                            GFF_file_named_sequentially_from:GFF_file_named_sequentially_to, 
+                                            ".", 
+                                            GFF_file_extension
+                                            )
+                                    )
+        )
+    }, error = function(e) {
+        print("GFF_file_table cannot be created!!!")
+        return(NULL)
+    })
+
+    if(nrow(GFF_file_table) > 0){
+        for(i in 1:nrow(GFF_file_table)){
+            if(!file.exists(file.path(GFF_file_table[i, 2]))){
+                print("File path for GFF does not exists.")
+                return(NULL)
+            }
+        }
+    } else{
+        print("GFF_file_table has zero row.")
+        return(NULL)
+    }
+
+    #######################################################################
+    ## Search genes using GFF files
+    #######################################################################
+
+    combined_gwas_result <- as.data.frame(combined_gwas_result)
+    combined_gwas_result$Gene_name <- NA
+    combined_gwas_result$Gene_start <- NA
+    combined_gwas_result$Gene_stop <- NA
+    combined_gwas_result$Gene_description <- NA
+
+    index <- match(as.integer(combined_gwas_result[1,2]), GFF_file_table[,1])
+
+    gff <- read_file(file_path = file.path(GFF_file_table[index, 2]), header = FALSE)
+    if(is.null(gff)){
+        print("Unable to read GFF reference file.")
+        return(NULL)
+    }
+
+    # For each row in each table
+    i <- 1
+    while(i <= nrow(combined_gwas_result)){
+
+        if(nrow(gff) > 0 & !is.na(combined_gwas_result[i, 2]) & !is.na(combined_gwas_result[i, 3]) & 
+            !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
+
+            # If chromosome number is different, read new gff that matches the chromosome number
+            if(as.numeric(gff[1,1]) != as.numeric(combined_gwas_result[i, 2])){
+                gff <- read_file(file_path = file.path(GFF_file_table[match(combined_gwas_result[i, 2], GFF_file_table[,1]), 2]), header = FALSE)
+                if(is.null(gff)){
+                    print("Unable to read GFF reference file.")
+                    return(NULL)
+                }
+            }
+
+            if(nrow(gff) > 0 & !is.na(combined_gwas_result$Haploblock_start[i]) & !is.na(combined_gwas_result$Haploblock_stop[i])){
+
+                temp_gff <- gff[(
+                gff[,4] < combined_gwas_result$Haploblock_start[i] & 
+                gff[,4] < combined_gwas_result$Haploblock_stop[i] & 
+                gff[,5] > combined_gwas_result$Haploblock_start[i]
+                ) | (
+                gff[,4] < combined_gwas_result$Haploblock_stop[i] & 
+                gff[,5] > combined_gwas_result$Haploblock_start[i] & 
+                gff[,5] > combined_gwas_result$Haploblock_stop[i]
+                ) | (
+                gff[,4] > combined_gwas_result$Haploblock_start[i] & 
+                gff[,5] < combined_gwas_result$Haploblock_stop[i]
+                ) | (
+                gff[,4] < combined_gwas_result$Haploblock_start[i] & 
+                gff[,4] < combined_gwas_result$Haploblock_stop[i] & 
+                gff[,5] > combined_gwas_result$Haploblock_start[i] & 
+                gff[,5] > combined_gwas_result$Haploblock_stop[i]
+                ),] 
+
+            } else if(nrow(gff) > 0 & !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
+                
+                temp_gff <- gff[(
+                gff[,4] < combined_gwas_result$LD_start[i] & 
+                gff[,4] < combined_gwas_result$LD_end[i] & 
+                gff[,5] > combined_gwas_result$LD_start[i]
+                ) | (
+                gff[,4] < combined_gwas_result$LD_end[i] & 
+                gff[,5] > combined_gwas_result$LD_start[i] & 
+                gff[,5] > combined_gwas_result$LD_end[i]
+                ) | (
+                gff[,4] > combined_gwas_result$LD_start[i] & 
+                gff[,5] < combined_gwas_result$LD_end[i]
+                ) | (
+                gff[,4] < combined_gwas_result$LD_start[i] & 
+                gff[,4] < combined_gwas_result$LD_end[i] & 
+                gff[,5] > combined_gwas_result$LD_start[i] & 
+                gff[,5] > combined_gwas_result$LD_end[i]
+                ),]
+
+            }
+
+            # If the results after matching have at least 1 row, write all the results to combined_gwas_result
+            if(nrow(temp_gff) > 0){
+                for(m in 1:nrow(temp_gff)){
+
+                    if(m == 1){
+                    combined_gwas_result$Gene_name[i] <- temp_gff[m,9]
+                    combined_gwas_result$Gene_start[i] <- temp_gff[m,4]
+                    combined_gwas_result$Gene_stop[i] <- temp_gff[m,5]
+                    combined_gwas_result$Gene_description[i] <- temp_gff[m,10]
+                    } else if(m > 1){
+                    combined_gwas_result <- InsertRow(combined_gwas_result, NewRow = combined_gwas_result[i,], RowNum = i+1)
+                    i <- i + 1
+                    combined_gwas_result$Gene_name[i] <- temp_gff[m,9]
+                    combined_gwas_result$Gene_start[i] <- temp_gff[m,4]
+                    combined_gwas_result$Gene_stop[i] <- temp_gff[m,5]
+                    combined_gwas_result$Gene_description[i] <- temp_gff[m,10]
+                    }
+
+                    # Remove any row that contains all NA
+                    combined_gwas_result <- combined_gwas_result[rowSums(is.na(combined_gwas_result)) != ncol(combined_gwas_result),]
+                }
+            }
+        }
+
+        i <- i + 1
+    }
+
+    #######################################################################
+    ## Save all GWAS Results
+    #######################################################################
+
+    # Order the table base on position number which is on column 3
+    combined_gwas_result <- combined_gwas_result[order(combined_gwas_result[,3]), ]
+    # Order the table base on chromosome number which is on column 2 
+    combined_gwas_result <- combined_gwas_result[order(combined_gwas_result[,2]), ]
+    combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$Trait), ]
+    
+    gwas_result_filename <- paste("GAPIT.combined.GWAS.Results.csv", sep = "")
+    write.csv(combined_gwas_result, file.path(output_path, gwas_result_filename), row.names = FALSE)
+
+    gwas_result_list <- split(x = combined_gwas_result, f = combined_gwas_result$Trait)
+    for (i in 1:length(gwas_result_list)) {
+        gwas_result_filename <- paste("GAPIT.", names(gwas_result_list)[i], ".GWAS.Results.csv", sep = "")
+        write.csv(gwas_result_list[[i]], file.path(GAPIT_significant_save_path, gwas_result_filename), row.names = FALSE)
+    }
+
+    #######################################################################
+    ## Everything is done, return combined_gwas_result
+    #######################################################################
+
+    return(combined_gwas_result)
+}
