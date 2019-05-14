@@ -36,8 +36,8 @@ GAPIT_genotype_file_named_sequentially_from: 1
 #GAPIT_genotype_file_named_sequentially_to: 5
 GAPIT_genotype_file_named_sequentially_to: 2
 GAPIT_model:
-#- GLM
- - MLM
+- GLM
+# - MLM
 # - MLMM
 # - SUPER
 # - FarmCPU

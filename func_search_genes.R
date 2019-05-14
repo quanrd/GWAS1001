@@ -189,4 +189,5 @@ search_genes <- function(combined_gwas_result,
     #######################################################################
 
     return(combined_gwas_result)
+
 }

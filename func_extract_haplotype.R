@@ -239,4 +239,5 @@ extract_haplotype <- function(combined_gwas_result,
     #######################################################################
 
     return(combined_gwas_result)
+
 }

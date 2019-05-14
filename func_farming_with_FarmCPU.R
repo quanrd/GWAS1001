@@ -1,4 +1,3 @@
-
 ## farming with FarmCPU
 farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_path, 
                                  p_value_threshold = NA, p_value_fdr_threshold = NA, ld_number = 0, 
@@ -369,4 +368,5 @@ farming_with_FarmCPU <- function(dat, by_column = 1, start_column = 2, output_pa
   write.csv(combined_gwas_result, file.path(getwd(), output_path, gwas_result_filename), row.names = FALSE)
 
   return(0)
+
 }

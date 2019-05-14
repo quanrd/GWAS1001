@@ -1,4 +1,4 @@
-
+## Read .csv file or tab delimited text file
 read_file <- function(file_path, header = TRUE){
   if (!is.null(file_path)) {
     if (file.exists(file_path)) {
