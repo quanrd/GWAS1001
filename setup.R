@@ -107,3 +107,17 @@ if (file.exists(file.path("..", filename))) {
   print(paste(filename, " cannot be created!!!", sep = ""))
 }
 
+
+
+# Create Maize.yaml file
+filename <- "Maize.yaml"
+dat <- readLines(con = filename)
+writeLines(dat, con = file.path("..", filename))
+if (file.exists(file.path("..", filename))) {
+  print(paste(filename, " has been created!!!", sep = ""))
+} else{
+  print(paste(filename, " cannot be created!!!", sep = ""))
+}
+
+
+

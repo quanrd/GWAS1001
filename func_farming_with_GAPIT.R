@@ -3,8 +3,9 @@ farming_with_GAPIT <- function(dat,
                                 by_column = 1, 
                                 start_column = 2, 
                                 output_path, 
-                                p_value_fdr_threshold = NA, 
-                                ld_number = 0, 
+                                p_value_threshold = NA,
+                                p_value_fdr_threshold = NA,
+                                ld_number = 0,
                                 KI = NULL,
                                 CV = NULL,
                                 G = NULL,
@@ -112,6 +113,25 @@ farming_with_GAPIT <- function(dat,
 
         gwas_result <- as.data.frame(gapit_result$GWAS)
 
+        # Show the GWAS results to user
+        cat(rep("\n", 2));
+        if(nrow(gwas_result) > 10) {
+            print(gwas_result[1:10,])
+        } else{
+            print(gwas_result)
+        }
+
+        # If model is FarmCPU, the calculate the FDR correction P-values
+        if(identical(model, "FarmCPU")){
+            if(ncol(gwas_result)<8){
+                gwas_result[,(ncol(gwas_result)+1):9] <- NA
+            } else{
+                gwas_result[,9] <- NA
+            }
+            colnames(gwas_result)[9] <- "FDR_Adjusted_P-values"
+            gwas_result[,9] <- p.adjust(gwas_result[,4], method = "fdr")
+        }
+
         # gwas_result$GWAS is formatted in columns below:
         # SNP, Chromosome, Position, P.value, maf, nobs
         # Rsquare.of.Model.without.SNP, Rsquare.of.Model.with.SNP
@@ -126,6 +146,11 @@ farming_with_GAPIT <- function(dat,
         gwas_result <- gwas_result[!is.na(gwas_result[,4]),]
         # Prevent FDR_Adjusted_P-values column has NA
         gwas_result <- gwas_result[!is.na(gwas_result[,9]),]
+
+        # Filter P-values column data base on the p_value_threshold
+        if(!is.na(p_value_threshold)){
+            gwas_result <- gwas_result[gwas_result[,4] <= p_value_threshold,]
+        }
 
         # Filter FDR_Adjusted_P-values column data base on the p_value_fdr_threshold
         if(!is.na(p_value_fdr_threshold)){
@@ -149,7 +174,7 @@ farming_with_GAPIT <- function(dat,
 
         # Add trait and method columns
         gwas_result$Trait <- colnames(dat)[i]
-        gwas_result$Method <- "GAPIT"
+        gwas_result$Method <- model[1]
 
         # Convert chromosome, position, and p.value columns to numeric
         gwas_result[, 2] <- as.numeric(as.character(gwas_result[, 2]))

@@ -33,7 +33,7 @@ GAPIT_genotype_file_path: /home/ycth8/data/GWAS1001/reference_files/Demo/
 GAPIT_genotype_file_named_sequentially_from: 1
 GAPIT_genotype_file_named_sequentially_to: 10
 GAPIT_model: 
-- GLM
+ - GLM
 # - MLM
 # - MLMM
 # - SUPER
@@ -43,6 +43,7 @@ GAPIT_PCA_total: 0
 GAPIT_Model_selection: TRUE
 GAPIT_SNP_test: TRUE
 GAPIT_file_output: TRUE
+GAPIT_p_value_threshold:
 GAPIT_p_value_fdr_threshold: 0.001
 GAPIT_LD_number: 100000
 

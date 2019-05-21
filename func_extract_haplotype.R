@@ -135,7 +135,7 @@ extract_haplotype <- function(combined_gwas_result,
                                                 " -n -out ", file.path(ld_data_save_path, filename), 
                                                 " -pedfile ", file.path(ped_and_info_save_path, ped_file_name), 
                                                 " -info ", file.path(ped_and_info_save_path, info_file_name), 
-                                                " -skipcheck -dprime -png -ldcolorscheme DEFAULT -ldvalues DPRIME -blockoutput GAB -minMAF 0.05", 
+                                                " -skipcheck -dprime -compressedpng -ldcolorscheme DEFAULT -ldvalues DPRIME -blockoutput GAB -minMAF 0.05",
                                                 sep = "")
 
                     # Run Haploview
@@ -156,47 +156,50 @@ extract_haplotype <- function(combined_gwas_result,
                     if(file.exists(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = "")))){
                         gabriel_block_string <- try(readLines(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = ""))))
                     }
-                    
+
+                    # Make sure all the Haploview output exists in the directory and exists in the workspace as well
                     if(file.exists(file.path(ld_data_save_path, paste(filename, ".LD", sep = ""))) & 
                         file.exists(file.path(haplotypes_gabriel_blocks_save_path, paste(filename, ".GABRIELblocks", sep = ""))) & 
-                        !identical(gabriel_block_string, character(0))){
+                        exists("LD_data") & exists("gabriel_block_string")){
 
-                        # Get Haploblock start and stop
-                        ld <- sort(as.double(unique(c(LD_data[,1], LD_data[,2]))))
+                        # Make sure the LD_data and gabriel_block_string are not totally empty
+                        if(!identical(LD_data, character(0)) & !identical(gabriel_block_string, character(0))){
+                            # Get Haploblock start and stop
+                            ld <- sort(as.double(unique(c(LD_data[,1], LD_data[,2]))))
 
-                        # Parse gabriel blocks data
-                        gbb <- list()
-                        for (k in 1:length(gabriel_block_string)) {
-                            if(grepl("MARKERS: ", gabriel_block_string[k], ignore.case = TRUE)){
-                                gbb <- append(gbb, strsplit(x = gsub(".*MARKERS: ", "" , gabriel_block_string[k]), split = " "))
-                            }
-                        }
-
-                        # Write the number of haploblocks to the corresponding row of Haploblock_number column
-                        combined_gwas_result$Haploblock_number[i] <- as.numeric(length(gbb))
-
-                        m <- length(gbb)
-                        n <- length(gbb[[m]])
-
-                        if(!is.na(as.integer(gbb[[m]][n])) & length(ld) >= as.integer(gbb[[m]][n])){
-
-                            # Get all the start and stop of markers from ld and gbb
-                            for(m in 1:length(gbb)){
-                                for (n in 1:length(gbb[[m]])) {
-                                    gbb[[m]][n] <- as.double(ld[as.integer(gbb[[m]][n])])
+                            # Parse gabriel blocks data
+                            gbb <- list()
+                            for (k in 1:length(gabriel_block_string)) {
+                                if(grepl("MARKERS: ", gabriel_block_string[k], ignore.case = TRUE)){
+                                    gbb <- append(gbb, strsplit(x = gsub(".*MARKERS: ", "" , gabriel_block_string[k]), split = " "))
                                 }
                             }
 
-                            # Write the Haploblock_start and Haploblock_stop that enclose the position
-                            for(m in 1:length(gbb)){
-                                if(as.double(combined_gwas_result[i,3]) >= as.double(gbb[[m]][1]) & 
-                                    as.double(combined_gwas_result[i,3]) <= as.double(gbb[[m]][length(gbb[[m]])]) ){
-                                        combined_gwas_result$Haploblock_start[i] <- as.double(gbb[[m]][1])
-                                        combined_gwas_result$Haploblock_stop[i] <- as.double(gbb[[m]][length(gbb[[m]])])
+                            # Write the number of haploblocks to the corresponding row of Haploblock_number column
+                            combined_gwas_result$Haploblock_number[i] <- as.numeric(length(gbb))
+
+                            m <- length(gbb)
+                            n <- length(gbb[[m]])
+
+                            if(!is.na(as.integer(gbb[[m]][n])) & length(ld) >= as.integer(gbb[[m]][n])){
+
+                                # Get all the start and stop of markers from ld and gbb
+                                for(m in 1:length(gbb)){
+                                    for (n in 1:length(gbb[[m]])) {
+                                        gbb[[m]][n] <- as.double(ld[as.integer(gbb[[m]][n])])
+                                    }
+                                }
+
+                                # Write the Haploblock_start and Haploblock_stop that enclose the position
+                                for(m in 1:length(gbb)){
+                                    if(as.double(combined_gwas_result[i,3]) >= as.double(gbb[[m]][1]) &
+                                        as.double(combined_gwas_result[i,3]) <= as.double(gbb[[m]][length(gbb[[m]])]) ){
+                                            combined_gwas_result$Haploblock_start[i] <- as.double(gbb[[m]][1])
+                                            combined_gwas_result$Haploblock_stop[i] <- as.double(gbb[[m]][length(gbb[[m]])])
+                                    }
                                 }
                             }
                         }
-                        
                     }
                 }
             }

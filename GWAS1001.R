@@ -386,6 +386,16 @@ if (!is.null(yaml_dat$GAPIT_file_output)) {
   print("The GAPIT_file_output parameter is FALSE.")
 }
 
+# GAPIT p.Value threshold
+if (!is.null(yaml_dat$GAPIT_p_value_threshold)) {
+  GAPIT_p_value_threshold <- as.numeric(yaml_dat$GAPIT_p_value_threshold)
+  if(is.logical(GAPIT_p_value_threshold)){ GAPIT_p_value_threshold <- NA }
+  print(paste("GAPIT_p_value_threshold: ", GAPIT_p_value_threshold, sep = ""))
+} else{
+  GAPIT_p_value_threshold <- NA
+  print("The GAPIT_p_value_threshold parameter is NA.")
+}
+
 # GAPIT p.Value FDR threshold
 if (!is.null(yaml_dat$GAPIT_p_value_fdr_threshold)) {
   GAPIT_p_value_fdr_threshold <- as.numeric(yaml_dat$GAPIT_p_value_fdr_threshold)
@@ -722,6 +732,7 @@ if (all("-GAPIT" %in% args)) {
         by_column = BLUP_by_column,
         start_column = BLUP_start_column,
         output_path = folder_path,
+        p_value_threshold = GAPIT_p_value_threshold,
         p_value_fdr_threshold = GAPIT_p_value_fdr_threshold,
         ld_number = GAPIT_LD_number,
         KI = GAPIT_kinship_matrix,
