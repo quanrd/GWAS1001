@@ -73,7 +73,7 @@ source("func_remove_duplicates.R")
 source("func_outlier_removal.R")
 source("func_boxcox_transformation.R")
 source("func_generate_BLUP.R")
-source("func_farming_with_FarmCPU.R")
+# source("func_farming_with_FarmCPU.R")
 source("func_farming_with_GAPIT.R")
 source("func_extract_haplotype.R")
 source("func_search_genes.R")
@@ -415,50 +415,6 @@ if (!is.null(yaml_dat$GAPIT_LD_number)) {
 }
 
 cat(rep("\n", 2))
-## Import FarmCPU reference files
-# FarmCPU genotype data file
-FarmCPU_genotype_data <- read_file(file_path = yaml_dat$FarmCPU_genotype_data)
-if (is.null(FarmCPU_genotype_data)) {
-  print("The FarmCPU_genotype_data parameter is NULL.")
-} else{
-  print("FarmCPU_genotype_data has been loaded into memory.")
-}
-
-# FarmCPU genotype map file
-FarmCPU_genotype_map <- read_file(file_path = yaml_dat$FarmCPU_genotype_map)
-if (is.null(FarmCPU_genotype_map)) {
-  print("The FarmCPU_genotype_map parameter is NULL.")
-} else{
-  print("FarmCPU_genotype_map has been loaded into memory.")
-}
-
-# FarmCPU filter threshold p_value_threshold and p_value_fdr_threshold
-if (!is.null(yaml_dat$FarmCPU_p_value_threshold)) {
-  FarmCPU_p_value_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_threshold)
-  if(is.logical(FarmCPU_p_value_threshold)){ FarmCPU_p_value_threshold <- NA }
-  print(paste("FarmCPU_p_value_threshold: ", FarmCPU_p_value_threshold, sep = ""))
-} else{
-  FarmCPU_p_value_threshold <- NA
-  print("The FarmCPU_p_value_threshold parameter is NA.")
-}
-if (!is.null(yaml_dat$FarmCPU_p_value_fdr_threshold)) {
-  FarmCPU_p_value_fdr_threshold <- as.numeric(yaml_dat$FarmCPU_p_value_fdr_threshold)
-  if(is.logical(FarmCPU_p_value_fdr_threshold)){ FarmCPU_p_value_fdr_threshold <- NA }
-  print(paste("FarmCPU_p_value_fdr_threshold: ", FarmCPU_p_value_fdr_threshold, sep = ""))
-} else{
-  FarmCPU_p_value_fdr_threshold <- NA
-  print("The FarmCPU_p_value_fdr_threshold parameter is NA.")
-}
-
-# FarmCPU LD_number
-if (!is.null(yaml_dat$FarmCPU_LD_number)) {
-  FarmCPU_LD_number <- as.numeric(yaml_dat$FarmCPU_LD_number)
-  print(paste("FarmCPU_LD_number: ", FarmCPU_LD_number, sep = ""))
-} else{
-  print("The FarmCPU_LD_number parameter is NULL.")
-}
-
-cat(rep("\n", 2))
 ## Haploview
 # Haploview_file_path
 if (!is.null(yaml_dat$Haploview_file_path)) {
@@ -757,81 +713,65 @@ if (all("-GAPIT" %in% args)) {
         file.output = GAPIT_file_output
       )
 
-      # if combined_gwas_result is not null and other requirements are satisfied then extract haplotype
-      if(!is.null(combined_gwas_result) & !is.null(Haploview_file_path) & !is.null(Haploview_file_name) & 
-          !is.null(Haploview_file_extension) & !is.na(Haploview_file_named_sequentially_from) & 
-          !is.na(Haploview_file_named_sequentially_to)){
-            combined_gwas_result <- extract_haplotype(
-              combined_gwas_result = combined_gwas_result,
-              output_path = folder_path, 
-              Haploview_file_path = Haploview_file_path, 
-              Haploview_file_name = Haploview_file_name, 
-              Haploview_file_extension = Haploview_file_extension, 
-              Haploview_file_named_sequentially_from = Haploview_file_named_sequentially_from, 
-              Haploview_file_named_sequentially_to = Haploview_file_named_sequentially_to
-            )
-      }
-
-      # if combined_gwas_result is not null and other requirements are satisfied then search genes
-      if(!is.null(combined_gwas_result) & !is.null(GFF_file_path) & !is.null(GFF_file_name) & 
-          !is.null(GFF_file_extension) & !is.na(GFF_file_named_sequentially_from) & 
-          !is.na(GFF_file_named_sequentially_to)){
-            combined_gwas_result <- search_genes(
-              combined_gwas_result = combined_gwas_result,
-              output_path = folder_path, 
-              GFF_file_path = GFF_file_path, 
-              GFF_file_name = GFF_file_name, 
-              GFF_file_extension = GFF_file_extension, 
-              GFF_file_named_sequentially_from = GFF_file_named_sequentially_from, 
-              GFF_file_named_sequentially_to = GFF_file_named_sequentially_to
-            )
-      }
   }
 }
 
-# FarmCPU
-if (all("-farmCPU" %in% args)) {
-  index <- match("-farmCPU", args)
-  print(paste(index, ": farmCPU", sep = ""))
+# Extract Haplotype
+if (all("-extractHaplotype" %in% args)) {
+  index <- match("-extractHaplotype", args)
+  print(paste(index, ": extractHaplotype", sep = ""))
 
-  if (exists("BLUP") & !is.null(BLUP) & exists("BLUP_by_column") & exists("BLUP_start_column") &
-      exists("FarmCPU_genotype_data") & !is.null(FarmCPU_genotype_data) &
-      exists("FarmCPU_genotype_map") & !is.null(FarmCPU_genotype_map) &
-      exists("hapmap_numeric") & !is.null(hapmap_numeric) & exists("gff") & !is.null(gff) &
-      exists("FarmCPU_LD_number") & FarmCPU_LD_number >= 0 & dir.exists(output)) {
+      # if combined_gwas_result is not null and other requirements are satisfied then extract haplotype
+      if(exists("combined_gwas_result") & !is.null(combined_gwas_result) & !is.null(Haploview_file_path) & !is.null(Haploview_file_name) &
+          !is.null(Haploview_file_extension) & !is.na(Haploview_file_named_sequentially_from) & !is.na(Haploview_file_named_sequentially_to)){
 
-    # Check BLUP file and genotype file
-    if (sum(match(BLUP[,1], FarmCPU_genotype_data[,1]), na.rm = TRUE) == 0) {
-      print(paste0("Elements in ", colnames(BLUP)[1], " column of BLUP file does not able to match with any element in ",
-                    colnames(FarmCPU_genotype_data)[1], " column of genotype file."))
-      quit(status = -1)
-    }
+            folder_path <- file.path(output, "GAPIT")
 
-    folder_path <- file.path(output, "FarmCPU")
+            if (!dir.exists(folder_path)) {
+              dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+            } else{
+              print("The GAPIT folder exists.")
+            }
 
-    if (!dir.exists(folder_path)) {
-      dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
-    } else{
-      print("The FarmCPU folder exists.")
-    }
+            combined_gwas_result <- extract_haplotype(
+              combined_gwas_result = combined_gwas_result,
+              output_path = folder_path,
+              Haploview_file_path = Haploview_file_path,
+              Haploview_file_name = Haploview_file_name,
+              Haploview_file_extension = Haploview_file_extension,
+              Haploview_file_named_sequentially_from = Haploview_file_named_sequentially_from,
+              Haploview_file_named_sequentially_to = Haploview_file_named_sequentially_to
+            )
+      }
+}
 
-    # Using customized function to run FarmCPU
-    results <-
-      farming_with_FarmCPU(
-        dat = BLUP,
-        by_column = BLUP_by_column,
-        start_column = BLUP_start_column,
-        output_path = folder_path,
-        p_value_threshold = FarmCPU_p_value_threshold,
-        p_value_fdr_threshold = FarmCPU_p_value_fdr_threshold,
-        ld_number = FarmCPU_LD_number,
-        GD = FarmCPU_genotype_data,
-        GM = FarmCPU_genotype_map,
-        hapmap_numeric = hapmap_numeric,
-        gff = gff
-      )
+# searchGenes
+if (all("-searchGenes" %in% args)) {
+  index <- match("-searchGenes", args)
+  print(paste(index, ": searchGenes", sep = ""))
 
-  }
+      # if combined_gwas_result is not null and other requirements are satisfied then search genes
+      if(exists("combined_gwas_result") & !is.null(combined_gwas_result) & !is.null(GFF_file_path) & !is.null(GFF_file_name) &
+          !is.null(GFF_file_extension) & !is.na(GFF_file_named_sequentially_from) & !is.na(GFF_file_named_sequentially_to)){
+
+            folder_path <- file.path(output, "GAPIT")
+
+            if (!dir.exists(folder_path)) {
+              dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+            } else{
+              print("The GAPIT folder exists.")
+            }
+
+            combined_gwas_result <- search_genes(
+              combined_gwas_result = combined_gwas_result,
+              output_path = folder_path,
+              GFF_file_path = GFF_file_path,
+              GFF_file_name = GFF_file_name,
+              GFF_file_extension = GFF_file_extension,
+              GFF_file_named_sequentially_from = GFF_file_named_sequentially_from,
+              GFF_file_named_sequentially_to = GFF_file_named_sequentially_to
+            )
+      }
 }
 
 

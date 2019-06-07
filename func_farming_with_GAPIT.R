@@ -63,15 +63,6 @@ farming_with_GAPIT <- function(dat,
     ## farming with GAPIT and other operations
     #######################################################################
 
-    # Check model to determine if we need to use Model.selection
-    if(is.null(model)){
-        Model.selection <- TRUE
-        cat(rep("\n", 2));print("GAPIT model does not exists. Turn on GAPIT auto model selection.");cat(rep("\n", 2));
-    } else{
-        Model.selection <- FALSE
-        cat(rep("\n", 2));print("GAPIT model does exists. Turn off GAPIT auto model selection.");cat(rep("\n", 2));
-    }
-
     # farming with GAPIT
     gwas_result_list <- list()
     for (i in start_column:ncol(dat)){

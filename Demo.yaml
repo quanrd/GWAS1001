@@ -10,7 +10,7 @@ start_column: 3
 #######################################################################
 ## BLUP or BLUE
 #######################################################################
-BLUP: /home/ycth8/data/GWAS1001/BLUP_BLUE/Demo/mdp_traits.txt
+BLUP: ../BLUP_BLUE/Demo/mdp_traits.txt
 BLUP_by_column:
 - 1
 BLUP_start_column: 2
@@ -29,7 +29,7 @@ GAPIT_genotype_map_numeric_file_extension:
 GAPIT_hapmap_filename: mdp_genotype_chr
 GAPIT_genotype_data_numeric_filename: 
 GAPIT_genotype_map_numeric_filename: 
-GAPIT_genotype_file_path: /home/ycth8/data/GWAS1001/reference_files/Demo/
+GAPIT_genotype_file_path: /home/ycth8/data/projects/GWAS1001/reference_files/Demo/
 GAPIT_genotype_file_named_sequentially_from: 1
 GAPIT_genotype_file_named_sequentially_to: 10
 GAPIT_model: 
@@ -38,8 +38,8 @@ GAPIT_model:
 # - MLMM
 # - SUPER
 # - FarmCPU
-GAPIT_SNP_MAF: 0
-GAPIT_PCA_total: 0
+GAPIT_SNP_MAF: 0.05
+GAPIT_PCA_total: 3
 GAPIT_Model_selection: TRUE
 GAPIT_SNP_test: TRUE
 GAPIT_file_output: TRUE
@@ -48,18 +48,9 @@ GAPIT_p_value_fdr_threshold: 0.001
 GAPIT_LD_number: 100000
 
 #######################################################################
-## FarmCPU
-#######################################################################
-FarmCPU_genotype_data: 
-FarmCPU_genotype_map: 
-FarmCPU_p_value_threshold: 
-FarmCPU_p_value_fdr_threshold: 
-FarmCPU_LD_number: 
-
-#######################################################################
 ## Haploview
 #######################################################################
-Haploview_file_path: /array4/users/ycth8/GWAS1001/reference_files/Demo/
+Haploview_file_path: ../reference_files/Demo/
 Haploview_file_name: mdp_genotype_haploview_chr
 Haploview_file_extension: txt
 Haploview_file_named_sequentially_from: 1
@@ -68,7 +59,7 @@ Haploview_file_named_sequentially_to: 10
 #######################################################################
 ## Match Gene Start and Stop
 #######################################################################
-GFF_file_path: /array4/users/ycth8/GWAS1001/reference_files/Demo/
+GFF_file_path: ../reference_files/Demo/
 GFF_file_name: gene_chr
 GFF_file_extension: gff.txt
 GFF_file_named_sequentially_from: 1
@@ -77,4 +68,4 @@ GFF_file_named_sequentially_to: 10
 #######################################################################
 ## Output Directory
 #######################################################################
-output: /home/ycth8/data/GWAS1001/output/demo_output
+output: ../output/demo_output
