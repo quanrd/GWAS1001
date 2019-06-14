@@ -112,21 +112,43 @@ farming_with_GAPIT <- function(dat,
             print(gwas_result)
         }
 
-        # If model is FarmCPU, the calculate the FDR correction P-values
-        if(identical(model, "FarmCPU")){
-            if(ncol(gwas_result)<8){
-                gwas_result[,(ncol(gwas_result)+1):9] <- NA
+        # We aspect the output has this many columns
+        aspect_ncol_gwas_result <- 9
+
+        # We plan to put fdr correction in this column
+        fdr_target_column <- 10
+
+        # If model is FarmCPU or MLM, the calculate the FDR correction P-values
+        if(identical(model, "GLM")){
+            if(ncol(gwas_result)<aspect_ncol_gwas_result){
+                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
             } else{
-                gwas_result[,9] <- NA
+                gwas_result[,fdr_target_column] <- NA
             }
-            colnames(gwas_result)[9] <- "FDR_Adjusted_P-values"
-            gwas_result[,9] <- p.adjust(gwas_result[,4], method = "fdr")
+            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
+            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
+        } else if(identical(model, "MLM")){
+            if(ncol(gwas_result)<aspect_ncol_gwas_result){
+                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
+            } else{
+                gwas_result[,fdr_target_column] <- NA
+            }
+            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
+            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
+        } else if(identical(model, "FarmCPU")){
+            if(ncol(gwas_result)<aspect_ncol_gwas_result){
+                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
+            } else{
+                gwas_result[,fdr_target_column] <- NA
+            }
+            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
+            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
         }
 
         # gwas_result$GWAS is formatted in columns below:
         # SNP, Chromosome, Position, P.value, maf, nobs
         # Rsquare.of.Model.without.SNP, Rsquare.of.Model.with.SNP
-        # FDR_Adjusted_P-values
+        # effect, FDR_Adjusted_P-values
 
         # Remove all the NAs
         # Prevent chromosome column has NA
@@ -136,7 +158,7 @@ farming_with_GAPIT <- function(dat,
         # Prevent P.value column has NA
         gwas_result <- gwas_result[!is.na(gwas_result[,4]),]
         # Prevent FDR_Adjusted_P-values column has NA
-        gwas_result <- gwas_result[!is.na(gwas_result[,9]),]
+        gwas_result <- gwas_result[!is.na(gwas_result[,fdr_target_column]),]
 
         # Filter P-values column data base on the p_value_threshold
         if(!is.na(p_value_threshold)){
@@ -145,7 +167,7 @@ farming_with_GAPIT <- function(dat,
 
         # Filter FDR_Adjusted_P-values column data base on the p_value_fdr_threshold
         if(!is.na(p_value_fdr_threshold)){
-            gwas_result <- gwas_result[gwas_result[,9] <= p_value_fdr_threshold,]
+            gwas_result <- gwas_result[gwas_result[,fdr_target_column] <= p_value_fdr_threshold,]
         }
 
         # Remove all the NAs
@@ -156,7 +178,7 @@ farming_with_GAPIT <- function(dat,
         # Prevent P.value column has NA
         gwas_result <- gwas_result[!is.na(gwas_result[,4]),]
         # Prevent FDR_Adjusted_P-values column has NA
-        gwas_result <- gwas_result[!is.na(gwas_result[,9]),]
+        gwas_result <- gwas_result[!is.na(gwas_result[,fdr_target_column]),]
 
         # If GWAS result has zero row, add a row of NAs
         if(nrow(gwas_result) == 0){
@@ -224,7 +246,7 @@ farming_with_GAPIT <- function(dat,
     ## Everything is done, return combined_gwas_result
     #######################################################################
 
-    if(length(colnames(combined_gwas_result)) > 9){
+    if(length(colnames(combined_gwas_result)) > fdr_target_column){
         return(combined_gwas_result)
     } else{
         return(NULL)

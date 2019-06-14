@@ -76,119 +76,119 @@ search_genes <- function(combined_gwas_result,
 
     gff <- read_file(file_path = file.path(GFF_file_table[index, 2]), header = FALSE)
     if(is.null(gff)){
-        print("Unable to read GFF reference file.")
-        return(NULL)
-    }
+        print("Unable to read GFF reference file or combined GWAS results are all NA.")
 
-    # For each row in each table
-    i <- 1
-    while(i <= nrow(combined_gwas_result)){
+    } else{
+        # For each row in each table
+        i <- 1
+        while(i <= nrow(combined_gwas_result)){
 
-        if(nrow(gff) > 0 & !is.na(combined_gwas_result[i, 2]) & !is.na(combined_gwas_result[i, 3]) & 
-            !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
+            if(nrow(gff) > 0 & !is.na(combined_gwas_result[i, 2]) & !is.na(combined_gwas_result[i, 3]) &
+                !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
 
-            # If chromosome number is different, read new gff that matches the chromosome number
-            if(as.numeric(gff[1,1]) != as.numeric(combined_gwas_result[i, 2])){
-                gff <- read_file(file_path = file.path(GFF_file_table[match(combined_gwas_result[i, 2], GFF_file_table[,1]), 2]), header = FALSE)
-                if(is.null(gff)){
-                    print("Unable to read GFF reference file.")
-                    return(NULL)
-                }
-            }
-
-            if(all(c("LD_start", "LD_end", "Haploblock_start", "Haploblock_stop") %in% colnames(combined_gwas_result))){
-                if(nrow(gff) > 0 & !is.na(combined_gwas_result$Haploblock_start[i]) & !is.na(combined_gwas_result$Haploblock_stop[i])){
-
-                    temp_gff <- gff[(
-                    gff[,4] < combined_gwas_result$Haploblock_start[i] &
-                    gff[,4] < combined_gwas_result$Haploblock_stop[i] &
-                    gff[,5] > combined_gwas_result$Haploblock_start[i]
-                    ) | (
-                    gff[,4] < combined_gwas_result$Haploblock_stop[i] &
-                    gff[,5] > combined_gwas_result$Haploblock_start[i] &
-                    gff[,5] > combined_gwas_result$Haploblock_stop[i]
-                    ) | (
-                    gff[,4] > combined_gwas_result$Haploblock_start[i] &
-                    gff[,5] < combined_gwas_result$Haploblock_stop[i]
-                    ) | (
-                    gff[,4] < combined_gwas_result$Haploblock_start[i] &
-                    gff[,4] < combined_gwas_result$Haploblock_stop[i] &
-                    gff[,5] > combined_gwas_result$Haploblock_start[i] &
-                    gff[,5] > combined_gwas_result$Haploblock_stop[i]
-                    ),]
-
-                } else if(nrow(gff) > 0 & !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
-
-                    temp_gff <- gff[(
-                    gff[,4] < combined_gwas_result$LD_start[i] &
-                    gff[,4] < combined_gwas_result$LD_end[i] &
-                    gff[,5] > combined_gwas_result$LD_start[i]
-                    ) | (
-                    gff[,4] < combined_gwas_result$LD_end[i] &
-                    gff[,5] > combined_gwas_result$LD_start[i] &
-                    gff[,5] > combined_gwas_result$LD_end[i]
-                    ) | (
-                    gff[,4] > combined_gwas_result$LD_start[i] &
-                    gff[,5] < combined_gwas_result$LD_end[i]
-                    ) | (
-                    gff[,4] < combined_gwas_result$LD_start[i] &
-                    gff[,4] < combined_gwas_result$LD_end[i] &
-                    gff[,5] > combined_gwas_result$LD_start[i] &
-                    gff[,5] > combined_gwas_result$LD_end[i]
-                    ),]
-
-                }
-            } else if(all(c("LD_start", "LD_end") %in% colnames(combined_gwas_result))){
-                if(nrow(gff) > 0 & !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
-
-                    temp_gff <- gff[(
-                    gff[,4] < combined_gwas_result$LD_start[i] &
-                    gff[,4] < combined_gwas_result$LD_end[i] &
-                    gff[,5] > combined_gwas_result$LD_start[i]
-                    ) | (
-                    gff[,4] < combined_gwas_result$LD_end[i] &
-                    gff[,5] > combined_gwas_result$LD_start[i] &
-                    gff[,5] > combined_gwas_result$LD_end[i]
-                    ) | (
-                    gff[,4] > combined_gwas_result$LD_start[i] &
-                    gff[,5] < combined_gwas_result$LD_end[i]
-                    ) | (
-                    gff[,4] < combined_gwas_result$LD_start[i] &
-                    gff[,4] < combined_gwas_result$LD_end[i] &
-                    gff[,5] > combined_gwas_result$LD_start[i] &
-                    gff[,5] > combined_gwas_result$LD_end[i]
-                    ),]
-
-                }
-            }
-
-
-
-            # If the results after matching have at least 1 row, write all the results to combined_gwas_result
-            if(nrow(temp_gff) > 0){
-                for(m in 1:nrow(temp_gff)){
-
-                    if(m == 1){
-                        combined_gwas_result$Gene_name[i] <- temp_gff[m,9]
-                        combined_gwas_result$Gene_start[i] <- temp_gff[m,4]
-                        combined_gwas_result$Gene_stop[i] <- temp_gff[m,5]
-                        combined_gwas_result$Gene_description[i] <- temp_gff[m,10]
-                    } else if(m > 1){
-                        combined_gwas_result <- InsertRow(combined_gwas_result, NewRow = combined_gwas_result[i,], RowNum = i+1)
-                        i <- i + 1
-                        combined_gwas_result$Gene_name[i] <- temp_gff[m,9]
-                        combined_gwas_result$Gene_start[i] <- temp_gff[m,4]
-                        combined_gwas_result$Gene_stop[i] <- temp_gff[m,5]
-                        combined_gwas_result$Gene_description[i] <- temp_gff[m,10]
+                # If chromosome number is different, read new gff that matches the chromosome number
+                if(as.numeric(gff[1,1]) != as.numeric(combined_gwas_result[i, 2])){
+                    gff <- read_file(file_path = file.path(GFF_file_table[match(combined_gwas_result[i, 2], GFF_file_table[,1]), 2]), header = FALSE)
+                    if(is.null(gff)){
+                        print("Unable to read GFF reference file.")
+                        return(NULL)
                     }
+                }
 
-                    # Remove any row that contains all NA
-                    combined_gwas_result <- combined_gwas_result[rowSums(is.na(combined_gwas_result)) != ncol(combined_gwas_result),]
+                if(all(c("LD_start", "LD_end", "Haploblock_start", "Haploblock_stop") %in% colnames(combined_gwas_result))){
+                    if(nrow(gff) > 0 & !is.na(combined_gwas_result$Haploblock_start[i]) & !is.na(combined_gwas_result$Haploblock_stop[i])){
+
+                        temp_gff <- gff[(
+                        gff[,4] < combined_gwas_result$Haploblock_start[i] &
+                        gff[,4] < combined_gwas_result$Haploblock_stop[i] &
+                        gff[,5] > combined_gwas_result$Haploblock_start[i]
+                        ) | (
+                        gff[,4] < combined_gwas_result$Haploblock_stop[i] &
+                        gff[,5] > combined_gwas_result$Haploblock_start[i] &
+                        gff[,5] > combined_gwas_result$Haploblock_stop[i]
+                        ) | (
+                        gff[,4] > combined_gwas_result$Haploblock_start[i] &
+                        gff[,5] < combined_gwas_result$Haploblock_stop[i]
+                        ) | (
+                        gff[,4] < combined_gwas_result$Haploblock_start[i] &
+                        gff[,4] < combined_gwas_result$Haploblock_stop[i] &
+                        gff[,5] > combined_gwas_result$Haploblock_start[i] &
+                        gff[,5] > combined_gwas_result$Haploblock_stop[i]
+                        ),]
+
+                    } else if(nrow(gff) > 0 & !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
+
+                        temp_gff <- gff[(
+                        gff[,4] < combined_gwas_result$LD_start[i] &
+                        gff[,4] < combined_gwas_result$LD_end[i] &
+                        gff[,5] > combined_gwas_result$LD_start[i]
+                        ) | (
+                        gff[,4] < combined_gwas_result$LD_end[i] &
+                        gff[,5] > combined_gwas_result$LD_start[i] &
+                        gff[,5] > combined_gwas_result$LD_end[i]
+                        ) | (
+                        gff[,4] > combined_gwas_result$LD_start[i] &
+                        gff[,5] < combined_gwas_result$LD_end[i]
+                        ) | (
+                        gff[,4] < combined_gwas_result$LD_start[i] &
+                        gff[,4] < combined_gwas_result$LD_end[i] &
+                        gff[,5] > combined_gwas_result$LD_start[i] &
+                        gff[,5] > combined_gwas_result$LD_end[i]
+                        ),]
+
+                    }
+                } else if(all(c("LD_start", "LD_end") %in% colnames(combined_gwas_result))){
+                    if(nrow(gff) > 0 & !is.na(combined_gwas_result$LD_start[i]) & !is.na(combined_gwas_result$LD_end[i])){
+
+                        temp_gff <- gff[(
+                        gff[,4] < combined_gwas_result$LD_start[i] &
+                        gff[,4] < combined_gwas_result$LD_end[i] &
+                        gff[,5] > combined_gwas_result$LD_start[i]
+                        ) | (
+                        gff[,4] < combined_gwas_result$LD_end[i] &
+                        gff[,5] > combined_gwas_result$LD_start[i] &
+                        gff[,5] > combined_gwas_result$LD_end[i]
+                        ) | (
+                        gff[,4] > combined_gwas_result$LD_start[i] &
+                        gff[,5] < combined_gwas_result$LD_end[i]
+                        ) | (
+                        gff[,4] < combined_gwas_result$LD_start[i] &
+                        gff[,4] < combined_gwas_result$LD_end[i] &
+                        gff[,5] > combined_gwas_result$LD_start[i] &
+                        gff[,5] > combined_gwas_result$LD_end[i]
+                        ),]
+
+                    }
+                }
+
+
+
+                # If the results after matching have at least 1 row, write all the results to combined_gwas_result
+                if(nrow(temp_gff) > 0){
+                    for(m in 1:nrow(temp_gff)){
+
+                        if(m == 1){
+                            combined_gwas_result$Gene_name[i] <- temp_gff[m,9]
+                            combined_gwas_result$Gene_start[i] <- temp_gff[m,4]
+                            combined_gwas_result$Gene_stop[i] <- temp_gff[m,5]
+                            combined_gwas_result$Gene_description[i] <- temp_gff[m,10]
+                        } else if(m > 1){
+                            combined_gwas_result <- InsertRow(combined_gwas_result, NewRow = combined_gwas_result[i,], RowNum = i+1)
+                            i <- i + 1
+                            combined_gwas_result$Gene_name[i] <- temp_gff[m,9]
+                            combined_gwas_result$Gene_start[i] <- temp_gff[m,4]
+                            combined_gwas_result$Gene_stop[i] <- temp_gff[m,5]
+                            combined_gwas_result$Gene_description[i] <- temp_gff[m,10]
+                        }
+
+                        # Remove any row that contains all NA
+                        combined_gwas_result <- combined_gwas_result[rowSums(is.na(combined_gwas_result)) != ncol(combined_gwas_result),]
+                    }
                 }
             }
-        }
 
-        i <- i + 1
+            i <- i + 1
+        }
     }
 
     #######################################################################
@@ -209,6 +209,19 @@ search_genes <- function(combined_gwas_result,
         gwas_result_filename <- paste("GAPIT.", names(gwas_result_list)[i], ".GWAS.Results.csv", sep = "")
         write.csv(gwas_result_list[[i]], file.path(GAPIT_significant_save_path, gwas_result_filename), row.names = FALSE)
     }
+
+    if(all(c("LD_start", "LD_end") %in% colnames(combined_gwas_result))){
+        combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$LD_end), ]
+        combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$LD_start), ]
+    }
+
+    if(all(c("Haploblock_start", "Haploblock_stop") %in% colnames(combined_gwas_result))){
+        combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$Haploblock_stop), ]
+        combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$Haploblock_start), ]
+    }
+
+    # Order the table base on chromosome number which is on column 2
+    combined_gwas_result <- combined_gwas_result[order(combined_gwas_result[,2]), ]
 
     #######################################################################
     ## Everything is done, return combined_gwas_result

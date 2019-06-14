@@ -44,7 +44,7 @@ GAPIT_Model_selection: TRUE
 GAPIT_SNP_test: TRUE
 GAPIT_file_output: TRUE
 GAPIT_p_value_threshold:
-GAPIT_p_value_fdr_threshold: 0.001
+GAPIT_p_value_fdr_threshold: 0.01
 GAPIT_LD_number: 100000
 
 #######################################################################
@@ -68,4 +68,4 @@ GFF_file_named_sequentially_to: 10
 #######################################################################
 ## Output Directory
 #######################################################################
-output: ../output/demo_output
+output: ../output/demo_output_GLM

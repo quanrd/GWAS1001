@@ -73,7 +73,6 @@ source("func_remove_duplicates.R")
 source("func_outlier_removal.R")
 source("func_boxcox_transformation.R")
 source("func_generate_BLUP.R")
-# source("func_farming_with_FarmCPU.R")
 source("func_farming_with_GAPIT.R")
 source("func_extract_haplotype.R")
 source("func_search_genes.R")
@@ -108,7 +107,7 @@ if (length(args) > 1) {
   print(args[2:length(args)])
   cat(rep("\n", 2))
 } else{
-  print("No action is required to perform!!!")
+  print("No parameter! No action is required to perform!!!")
   cat(rep("\n", 2))
   quit(status = -1)
 }
@@ -775,4 +774,4 @@ if (all("-searchGenes" %in% args)) {
 }
 
 
-cat(rep("\n", 2));print("-------------------- GWAS1001 Stop --------------------");cat(rep("\n", 2));
+cat(rep("\n", 2));print("-------------------- GWAS1001 Exit --------------------");cat(rep("\n", 2));
