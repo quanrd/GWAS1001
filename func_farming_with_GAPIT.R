@@ -135,6 +135,14 @@ farming_with_GAPIT <- function(dat,
             }
             colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
             gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
+        } else if(identical(model, "MLMM")){
+            if(ncol(gwas_result)<aspect_ncol_gwas_result){
+                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
+            } else{
+                gwas_result[,fdr_target_column] <- NA
+            }
+            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
+            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
         } else if(identical(model, "FarmCPU")){
             if(ncol(gwas_result)<aspect_ncol_gwas_result){
                 gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
