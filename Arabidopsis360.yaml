@@ -50,18 +50,18 @@ GAPIT_LD_number: 5000
 #######################################################################
 ## Haploview
 #######################################################################
-Haploview_file_path:
-Haploview_file_name:
-Haploview_file_extension:
+Haploview_file_path: /home/ycth8/data/projects/GWAS1001/reference_files/Arabidopsis_360/GAPIT/SNP_matrix/
+Haploview_file_name: Chr
+Haploview_file_extension: txt
 Haploview_file_named_sequentially_from: 1
 Haploview_file_named_sequentially_to: 5
 
 #######################################################################
 ## Match Gene Start and Stop
 #######################################################################
-GFF_file_path:
-GFF_file_name:
-GFF_file_extension:
+GFF_file_path: /home/ycth8/data/projects/GWAS1001/reference_files/Arabidopsis_360/GAPIT/Gene_gff_separated_by_chromosome/
+GFF_file_name: Chr
+GFF_file_extension: txt
 GFF_file_named_sequentially_from: 1
 GFF_file_named_sequentially_to: 5
 

@@ -1,40 +1,41 @@
-# Clear all variables
+## Clean the workspace
 rm(list = ls())
 
 
 
 # Set repository so that required packages can be downloaded
 r = getOption("repos")
-r["CRAN"] = "http://cran.us.r-project.org"
+r["CRAN"] = "https://cran.cnr.berkeley.edu/"
 options(repos = r)
 
 
 
+R_library = paste(R.version$platform, "-library", sep = "")
+R_version = gsub(".0", "", paste(R.version$major, R.version$minor, sep = "."))
+
 # Install path
-p <- "~/R/x86_64-redhat-linux-gnu-library/3.5/"
+p <- file.path("~/R", R_library, R_version)
 if(!dir.exists(p)){
   dir.create(path = p, recursive = TRUE)
 }
 
 
 
-# BiocManager package version
-bioc_version <- "3.8"
-
-
-
 # Gather required packages
-packages <- c("ape", 
-              "bigmemory", "biganalytics", "BiocManager", 
-              "curl", "compiler", "car", 
-              "data.table", "devtools", "DataCombine", "DBI", 
-              "EMMREML", 
-              "genetics", "gplots", "grid", 
-              "httr", 
-              "lme4", "LDheatmap", 
-              "rvest", 
-              "scatterplot3d", "sparklyr", 
-              "plyr", "dplyr", "tidyverse", 
+packages <- c("base", "Rcpp", "rlang", "mime", "shiny", "rmarkdown", "digest", "stats", "htmltools", "htmlwidgets",
+              "ape",
+              "DBI", "biglm",
+              "bigmemory", "biganalytics", "BiocManager",
+              "curl", "compiler", "backports", "vctrs", "crayon", "carData", "car",
+              "data.table", "desc", "withr", "ps", "rappdirs", "rhub", "devtools", "DataCombine",
+              "EMMREML",
+              "gdata", "gtools", "combinat", "bitops", "caTools", "genetics", "gplots", "grid",
+              "httr",
+              "lme4", "LDheatmap",
+              "MASS",
+              "rvest",
+              "scatterplot3d", "survival",
+              "plyr", "tidyverse",
               "yaml")
 
 # Check packages and install them if needed
@@ -53,17 +54,21 @@ bioc_packages <- c("zlibbioc", "snpStats", "multtest")
 # Check packages and install them if needed
 invisible(lapply(bioc_packages, FUN = function(x){
   if (!require(x, character.only = TRUE)) {
-    BiocManager::install(x, version = bioc_version, lib.loc = p, lib = p)
+    BiocManager::install(x, lib.loc = p, lib = p)
     library(x, lib.loc = p, character.only = TRUE)
   }
 }))
 
 
 
-
 # Print this after all packages are successfully installed
 loaded_packages <- sessionInfo()
 print(names(loaded_packages$otherPkgs))
+
+
+
+# Print some empty space
+cat(rep("\n", 3))
 
 
 
@@ -81,6 +86,18 @@ for (i in 1:length(foldernames)) {
   } else{
     print(paste(foldernames[i], " folder exists!!!", sep = ""))
   }
+}
+
+
+
+# Create Arabidopsis360.yaml file
+filename <- "Arabidopsis360.yaml"
+dat <- readLines(con = filename)
+writeLines(dat, con = file.path("..", filename))
+if (file.exists(file.path("..", filename))) {
+  print(paste(filename, " has been created!!!", sep = ""))
+} else{
+  print(paste(filename, " cannot be created!!!", sep = ""))
 }
 
 
@@ -107,5 +124,9 @@ if (file.exists(file.path("..", filename))) {
   print(paste(filename, " cannot be created!!!", sep = ""))
 }
 
+
+
+# Print some empty space
+cat(rep("\n", 3))
 
 

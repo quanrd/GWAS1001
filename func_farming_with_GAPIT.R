@@ -113,10 +113,10 @@ farming_with_GAPIT <- function(dat,
         }
 
         # We aspect the output has this many columns
-        aspect_ncol_gwas_result <- 9
+        aspect_ncol_gwas_result <- ncol(gwas_result)
 
         # We plan to put fdr correction in this column
-        fdr_target_column <- 10
+        fdr_target_column <- ncol(gwas_result) + 1
 
         # If model is FarmCPU or MLM, the calculate the FDR correction P-values
         if(identical(model, "GLM")){

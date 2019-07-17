@@ -1,33 +1,38 @@
 ## Clean the workspace
 rm(list = ls())
 
+
+
 # Set repository so that required packages can be downloaded
 r = getOption("repos")
-r["CRAN"] = "http://cran.us.r-project.org"
+r["CRAN"] = "https://cran.cnr.berkeley.edu/"
 options(repos = r)
 
+
+
+R_library = paste(R.version$platform, "-library", sep = "")
+R_version = gsub(".0", "", paste(R.version$major, R.version$minor, sep = "."))
+
 # Install path
-p <- "~/R/x86_64-redhat-linux-gnu-library/3.5/"
+p <- file.path("~/R", R_library, R_version)
 if(!dir.exists(p)){
   dir.create(path = p, recursive = TRUE)
 }
 
-bioc_version <- "3.8"
-
 
 
 # Gather required packages
-packages <- c("ape", 
-              "bigmemory", "biganalytics", "BiocManager", 
-              "curl", "compiler", "car", 
-              "data.table", "devtools", "DataCombine", "DBI", 
-              "EMMREML", 
-              "genetics", "gplots", "grid", 
-              "httr", 
-              "lme4", "LDheatmap", 
-              "rvest", 
-              "scatterplot3d", "sparklyr", 
-              "plyr", "dplyr", "tidyverse", 
+packages <- c("ape",
+              "bigmemory", "biganalytics", "BiocManager",
+              "curl", "compiler", "car",
+              "data.table", "devtools", "DataCombine", "DBI",
+              "EMMREML",
+              "genetics", "gplots", "grid",
+              "httr",
+              "lme4", "LDheatmap",
+              "rvest",
+              "scatterplot3d",
+              "plyr", "tidyverse",
               "yaml")
 
 # Check packages and install them if needed
@@ -39,13 +44,14 @@ invisible(lapply(packages, FUN = function(x){
 }))
 
 
+
 # The packages here are from BiocManager
 bioc_packages <- c("zlibbioc", "snpStats", "multtest")
 
 # Check packages and install them if needed
 invisible(lapply(bioc_packages, FUN = function(x){
   if (!require(x, character.only = TRUE)) {
-    BiocManager::install(x, version = bioc_version, lib.loc = p, lib = p)
+    BiocManager::install(x, lib.loc = p, lib = p)
     library(x, lib.loc = p, character.only = TRUE)
   }
 }))
@@ -68,6 +74,7 @@ source("http://www.zzlab.net/FarmCPU/FarmCPU_functions.txt")
 source("http://www.zzlab.net/GAPIT/gapit_functions.txt")
 
 # Source R files
+source("func_print_help.R")
 source("func_read_file.R")
 source("func_remove_duplicates.R")
 source("func_outlier_removal.R")
@@ -83,8 +90,19 @@ source("func_search_genes.R")
 args <- commandArgs(trailingOnly = TRUE)
 
 
+#######################################################################
+## Help support
+#######################################################################
 
-cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------");cat(rep("\n", 2));
+# help is in args
+if (any(c("-h", "-help", "--help") %in% args)) {
+  print_help()
+  quit(status = 0)
+}
+
+
+
+cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------");cat(rep("\n", 2))
 
 
 
@@ -99,6 +117,7 @@ if (!identical(args, character(0)) & length(args) > 0 & file.exists(file.path(ar
 } else{
   print("The first provided argument is not a YAML file path or the YAML file does not exists!!!")
   cat(rep("\n", 2))
+  print_help()
   quit(status = -1)
 }
 
@@ -109,6 +128,7 @@ if (length(args) > 1) {
 } else{
   print("No parameter! No action is required to perform!!!")
   cat(rep("\n", 2))
+  print_help()
   quit(status = -1)
 }
 
@@ -118,6 +138,8 @@ yaml_dat <- tryCatch({
   read_yaml(file.path(args[1]))
 }, error = function(e) {
   print("The yaml file is invalid!!!")
+  cat(rep("\n", 2))
+  print_help()
   quit(status = -1)
 })
 
@@ -774,4 +796,4 @@ if (all("-searchGenes" %in% args)) {
 }
 
 
-cat(rep("\n", 2));print("-------------------- GWAS1001 Exit --------------------");cat(rep("\n", 2));
+cat(rep("\n", 2));print("-------------------- GWAS1001 Exit --------------------");cat(rep("\n", 2))
