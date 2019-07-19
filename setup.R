@@ -41,7 +41,7 @@ packages <- c("base", "Rcpp", "rlang", "mime", "shiny", "rmarkdown", "digest", "
 # Check packages and install them if needed
 invisible(lapply(packages, FUN = function(x){
   if (!require(x, character.only = TRUE)) {
-    install.packages(x, dependencies = TRUE, repos = "https://cran.cnr.berkeley.edu/", lib = p, dependencies = TRUE)
+    install.packages(x, dependencies = TRUE, repos = "https://cran.cnr.berkeley.edu/", lib = p)
     library(x, lib.loc = p, character.only = TRUE)
   }
 }))
