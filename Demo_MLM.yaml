@@ -44,7 +44,7 @@ GAPIT_Model_selection: TRUE
 GAPIT_SNP_test: TRUE
 GAPIT_file_output: TRUE
 GAPIT_p_value_threshold:
-GAPIT_p_value_fdr_threshold: 0.01
+GAPIT_p_value_fdr_threshold: 0.05
 GAPIT_LD_number: 100000
 
 #######################################################################

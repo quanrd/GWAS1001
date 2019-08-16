@@ -72,6 +72,7 @@ extract_haplotype <- function(combined_gwas_result,
     combined_gwas_result$Haploblock_stop <- NA
 
     index <- match(as.integer(combined_gwas_result[1,2]), Haploview_file_table[,1])
+    index <- ifelse(is.na(index), 1, index)
 
     haploview_ref <- read_file(file_path = file.path(Haploview_file_table[index, 2]))
     if(is.null(haploview_ref)){
@@ -90,7 +91,11 @@ extract_haplotype <- function(combined_gwas_result,
 
                 # If chromosome number is different, read new haploview_ref that matches the chromosome number
                 if(as.numeric(haploview_ref$Chromosome[1]) != as.numeric(combined_gwas_result[i, 2])){
-                    haploview_ref <- read_file(file_path = file.path(Haploview_file_table[match(combined_gwas_result[i, 2], Haploview_file_table[,1]), 2]))
+
+                    index <- match(as.integer(combined_gwas_result[i, 2]), Haploview_file_table[,1])
+                    index <- ifelse(is.na(index), 1, index)
+
+                    haploview_ref <- read_file(file_path = file.path(Haploview_file_table[index, 2]))
                     if(is.null(haploview_ref)){
                         print("Unable to read haploview reference file.")
                         return(NULL)
@@ -100,13 +105,13 @@ extract_haplotype <- function(combined_gwas_result,
                     colnames(haploview_ref)[2] <- "Positions"
                 }
 
-                if(nrow(haploview_ref) > 0){
+                if(nrow(haploview_ref) > 0 & haploview_ref$Chromosome[1] == as.numeric(combined_gwas_result[i, 2])){
                     # Create a temporary haploview_ref from chromosome, LD start, and LD stop
                     temp_haploview_ref <- haploview_ref[(haploview_ref$Positions >= combined_gwas_result$LD_start[i] &
                                                             haploview_ref$Positions <= combined_gwas_result$LD_end[i] &
                                                             haploview_ref$Chromosome == combined_gwas_result[i, 2]), ]
 
-                    if(nrow(temp_haploview_ref) > 0){
+                    if(nrow(temp_haploview_ref) > 0 & temp_haploview_ref$Chromosome[1] == as.numeric(combined_gwas_result[i, 2])){
                         # Put positions to info file
                         info <- data.frame(temp_haploview_ref$Positions, temp_haploview_ref$Positions)
 
@@ -135,7 +140,7 @@ extract_haplotype <- function(combined_gwas_result,
                                                     " -n -out ", file.path(ld_data_save_path, filename),
                                                     " -pedfile ", file.path(ped_and_info_save_path, ped_file_name),
                                                     " -info ", file.path(ped_and_info_save_path, info_file_name),
-                                                    " -skipcheck -dprime -compressedpng -ldcolorscheme DEFAULT -ldvalues DPRIME -blockoutput GAB -minMAF 0.05",
+                                                    " -skipcheck -dprime -png -ldcolorscheme DEFAULT -ldvalues DPRIME -blockoutput GAB -minMAF 0.05",
                                                     sep = "")
 
                         # Run Haploview

@@ -73,7 +73,7 @@ cat(rep("\n", 3))
 
 
 # Create these folders
-foldernames <- c("raw_data", "BLUP_BLUE", "reference_files", "output")
+foldernames <- c("raw_data", "BLUP_BLUE", "reference_files", "output", "yaml")
 for (i in 1:length(foldernames)) {
   temp <- file.path("..", foldernames[i])
   if(!dir.exists(temp)){
