@@ -11,7 +11,7 @@ options(repos = r)
 
 
 R_library = paste(R.version$platform, "-library", sep = "")
-R_version = gsub(".0", "", paste(R.version$major, R.version$minor, sep = "."))
+R_version = gsub("\\.0$", "", paste(R.version$major, R.version$minor, sep = "."))
 
 # Install path
 p <- file.path("~/R", R_library, R_version)
@@ -23,16 +23,14 @@ if(!dir.exists(p)){
 
 # Gather required packages
 packages <- c("ape",
-              "bigmemory", "biganalytics", "BiocManager",
-              "curl", "compiler", "car",
-              "data.table", "devtools", "DataCombine", "DBI",
+              "BiocManager",
+              "compiler", "car",
+              "data.table", "DataCombine",
               "EMMREML",
-              "genetics", "gplots", "grid",
-              "httr",
+              "genetics", "gplots", "gridExtra",
               "lme4", "LDheatmap",
-              "rvest",
               "scatterplot3d",
-              "plyr", "tidyverse",
+              "dplyr", "tidyr", "ggplot2",
               "yaml")
 
 # Check packages and install them if needed

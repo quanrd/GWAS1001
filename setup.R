@@ -11,7 +11,7 @@ options(repos = r)
 
 
 R_library = paste(R.version$platform, "-library", sep = "")
-R_version = gsub(".0", "", paste(R.version$major, R.version$minor, sep = "."))
+R_version = gsub("\\.0$", "", paste(R.version$major, R.version$minor, sep = "."))
 
 # Install path
 p <- file.path("~/R", R_library, R_version)
@@ -21,21 +21,18 @@ if(!dir.exists(p)){
 
 
 
+
+
 # Gather required packages
-packages <- c("base", "Rcpp", "rlang", "mime", "shiny", "rmarkdown", "digest", "stats", "htmltools", "htmlwidgets",
-              "ape",
-              "DBI", "biglm",
-              "bigmemory", "biganalytics", "BiocManager",
-              "curl", "compiler", "backports", "vctrs", "crayon", "carData", "car",
-              "data.table", "desc", "withr", "ps", "rappdirs", "rhub", "devtools", "DataCombine",
+packages <- c("ape",
+              "BiocManager",
+              "compiler", "car",
+              "data.table", "DataCombine",
               "EMMREML",
-              "gdata", "gtools", "combinat", "bitops", "caTools", "genetics", "gplots", "grid",
-              "httr",
+              "genetics", "gplots", "gridExtra",
               "lme4", "LDheatmap",
-              "MASS",
-              "rvest",
-              "scatterplot3d", "survival",
-              "plyr", "tidyverse",
+              "scatterplot3d",
+              "dplyr", "tidyr", "ggplot2",
               "yaml")
 
 # Check packages and install them if needed
@@ -58,6 +55,8 @@ invisible(lapply(bioc_packages, FUN = function(x){
     library(x, lib.loc = p, character.only = TRUE)
   }
 }))
+
+
 
 
 

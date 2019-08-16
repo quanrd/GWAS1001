@@ -10,7 +10,7 @@ start_column: 3
 #######################################################################
 ## BLUP or BLUE
 #######################################################################
-BLUP: ../BLUP_BLUE/Demo/mdp_traits.txt
+BLUP: ./Demo/mdp_traits.txt
 BLUP_by_column:
 - 1
 BLUP_start_column: 2
@@ -50,7 +50,7 @@ GAPIT_LD_number: 100000
 #######################################################################
 ## Haploview
 #######################################################################
-Haploview_file_path: ../reference_files/Demo/
+Haploview_file_path: ./Demo/
 Haploview_file_name: mdp_genotype_haploview_chr
 Haploview_file_extension: txt
 Haploview_file_named_sequentially_from: 1
@@ -59,7 +59,7 @@ Haploview_file_named_sequentially_to: 10
 #######################################################################
 ## Match Gene Start and Stop
 #######################################################################
-GFF_file_path: ../reference_files/Demo/
+GFF_file_path: ./Demo/
 GFF_file_name: gene_chr
 GFF_file_extension: gff.txt
 GFF_file_named_sequentially_from: 1
