@@ -11,14 +11,10 @@ A genome-wide association study (GWAS) tool written in R
      - -extractHaplotype (optional)
      - -searchGenes (optional)
 
+## Upgrade Packages
+update.packages(ask=FALSE, checkBuilt = TRUE)
 
-
-<h2>Upgrade Packages</h2>
-<p>
-	update.packages(ask=FALSE, checkBuilt = TRUE) 
-</p>
-
-<h2>Install Packages</h2>
+## Install Packages
 <ul style="list-style-type:square">
   <li>install.packages("dplyr")</li>
   <li>install.packages("tidyr")</li>
@@ -41,8 +37,7 @@ A genome-wide association study (GWAS) tool written in R
   <li>install.packages("yaml")</li>
 </ul>
 
-<h2>Reminder</h2>
-<p>
-  Please run git pull on terminal before open or run the GWAS1001 pipeline since this application is still being developed.
-</p>
+## Reminder
+Please run git pull on terminal before open or run the GWAS1001 pipeline since this application is still being developed.
+
 
