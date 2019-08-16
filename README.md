@@ -6,7 +6,11 @@ A genome-wide association study (GWAS) tool written in R
   1. Clone the repository: git clone https://github.com/yenon118/GWAS1001.git <br>
   2. cd GWAS1001 <br>
   3. Rscript setup.R <br>
-  4. Rscript GWAS1001.R <br>
+  4. Rscript GWAS1001.R [COMMANDS] <br>
+	&lt;p&gt; COMMANDS: 
+	&lt;p&gt; -GAPIT (required)
+	&lt;p&gt; -extractHaplotype (optional)
+	&lt;p&gt; -searchGenes (optional)
 </p>
 
 <h2>Upgrade Packages</h2>
