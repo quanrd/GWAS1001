@@ -64,8 +64,7 @@ farming_with_GAPIT <- function(dat,
     #######################################################################
 
     # farming with GAPIT
-    gwas_result_list <- list()
-    for (i in start_column:ncol(dat)){
+    combined_gwas_result = foreach(i = start_column:ncol(dat), .combine = rbind) %dopar% {
         gapit_result <- GAPIT(
             Y = dat[,c(1,i)],
             KI = KI,
@@ -92,65 +91,26 @@ farming_with_GAPIT <- function(dat,
             file.output = file.output
         )
 
-        if(file.exists(file.path(paste("GAPIT..", colnames(dat)[i], ".Manhattan.Plot.Genomewise.pdf", sep = "")))){
-            system(paste("convert", file.path(paste("GAPIT..", colnames(dat)[i], ".Manhattan.Plot.Genomewise.pdf", sep = "")), 
-                            file.path(GAPIT_manhattan_plot_save_path, paste("GAPIT..", colnames(dat)[i], ".Manhattan.Plot.Genomewise.png", sep = "")), sep = " "))
+        if(file.exists(file.path(paste("GAPIT.", model,".", colnames(dat)[i], ".Manhattan.Plot.Genomewise.pdf", sep = "")))){
+            system(paste("convert", file.path(paste("GAPIT.", model,".", colnames(dat)[i], ".Manhattan.Plot.Genomewise.pdf", sep = "")),
+                            file.path(GAPIT_manhattan_plot_save_path, paste("GAPIT.", model,".", colnames(dat)[i], ".Manhattan.Plot.Genomewise.png", sep = "")), sep = " "))
         }
 
-        if(file.exists(file.path(paste("GAPIT..", colnames(dat)[i], ".QQ-Plot.pdf", sep = "")))){
-            system(paste("convert", file.path(paste("GAPIT..", colnames(dat)[i], ".QQ-Plot.pdf", sep = "")), 
-                            file.path(GAPIT_qq_plot_save_path, paste("GAPIT..", colnames(dat)[i], ".QQ-Plot.png", sep = "")), sep = " "))
+        if(file.exists(file.path(paste("GAPIT.", model,".", colnames(dat)[i], ".QQ-Plot.pdf", sep = "")))){
+            system(paste("convert", file.path(paste("GAPIT.", model,".", colnames(dat)[i], ".QQ-Plot.pdf", sep = "")),
+                            file.path(GAPIT_qq_plot_save_path, paste("GAPIT.", model,".", colnames(dat)[i], ".QQ-Plot.png", sep = "")), sep = " "))
         }
 
-        gwas_result <- as.data.frame(gapit_result$GWAS)
+        gwas_result <- as.data.frame(gapit_result$GWAS, stringsAsFactors = FALSE)
 
         # Show the GWAS results to user
-        cat(rep("\n", 2));
-        if(nrow(gwas_result) > 10) {
-            print(gwas_result[1:10,])
-        } else{
-            print(gwas_result)
-        }
+        cat(rep("\n", 2))
+        print(head(gwas_result))
 
-        # We aspect the output has this many columns
-        aspect_ncol_gwas_result <- ncol(gwas_result)
-
-        # We plan to put fdr correction in this column
-        fdr_target_column <- ncol(gwas_result) + 1
-
-        # If model is FarmCPU or MLM, the calculate the FDR correction P-values
-        if(identical(model, "GLM")){
-            if(ncol(gwas_result)<aspect_ncol_gwas_result){
-                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
-            } else{
-                gwas_result[,fdr_target_column] <- NA
-            }
-            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
-            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
-        } else if(identical(model, "MLM")){
-            if(ncol(gwas_result)<aspect_ncol_gwas_result){
-                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
-            } else{
-                gwas_result[,fdr_target_column] <- NA
-            }
-            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
-            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
-        } else if(identical(model, "MLMM")){
-            if(ncol(gwas_result)<aspect_ncol_gwas_result){
-                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
-            } else{
-                gwas_result[,fdr_target_column] <- NA
-            }
-            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
-            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
-        } else if(identical(model, "FarmCPU")){
-            if(ncol(gwas_result)<aspect_ncol_gwas_result){
-                gwas_result[,(ncol(gwas_result)+1):fdr_target_column] <- NA
-            } else{
-                gwas_result[,fdr_target_column] <- NA
-            }
-            colnames(gwas_result)[fdr_target_column] <- "FDR_Adjusted_P-values"
-            gwas_result[,fdr_target_column] <- p.adjust(gwas_result[,4], method = "fdr")
+        if(!("FDR_Adjusted_P-values" %in% colnames(gwas_result))){
+            gwas_result <- gwas_result %>%
+                            add_column(`FDR_Adjusted_P-values` = p.adjust(gwas_result[,4], method = "fdr"), .after = 4) %>%
+                            as.data.frame(stringsAsFactors = FALSE)
         }
 
         # gwas_result$GWAS is formatted in columns below:
@@ -166,7 +126,7 @@ farming_with_GAPIT <- function(dat,
         # Prevent P.value column has NA
         gwas_result <- gwas_result[!is.na(gwas_result[,4]),]
         # Prevent FDR_Adjusted_P-values column has NA
-        gwas_result <- gwas_result[!is.na(gwas_result[,fdr_target_column]),]
+        gwas_result <- gwas_result[!is.na(gwas_result$`FDR_Adjusted_P-values`),]
 
         # Filter P-values column data base on the p_value_threshold
         if(!is.na(p_value_threshold)){
@@ -175,7 +135,7 @@ farming_with_GAPIT <- function(dat,
 
         # Filter FDR_Adjusted_P-values column data base on the p_value_fdr_threshold
         if(!is.na(p_value_fdr_threshold)){
-            gwas_result <- gwas_result[gwas_result[,fdr_target_column] <= p_value_fdr_threshold,]
+            gwas_result <- gwas_result[gwas_result$`FDR_Adjusted_P-values` <= p_value_fdr_threshold,]
         }
 
         # Remove all the NAs
@@ -186,7 +146,7 @@ farming_with_GAPIT <- function(dat,
         # Prevent P.value column has NA
         gwas_result <- gwas_result[!is.na(gwas_result[,4]),]
         # Prevent FDR_Adjusted_P-values column has NA
-        gwas_result <- gwas_result[!is.na(gwas_result[,fdr_target_column]),]
+        gwas_result <- gwas_result[!is.na(gwas_result$`FDR_Adjusted_P-values`),]
 
         # If GWAS result has zero row, add a row of NAs
         if(nrow(gwas_result) == 0){
@@ -214,15 +174,10 @@ farming_with_GAPIT <- function(dat,
         gwas_result <- gwas_result[order(gwas_result[,2]), ]
 
         # Show the GWAS results to user
-        cat(rep("\n", 2)); 
-        if(nrow(gwas_result) > 10) {
-            print(gwas_result[1:10,])
-        } else{
-            print(gwas_result)
-        }
-        
-        # Save gwas result into the gwas_result_list
-        gwas_result_list[[colnames(dat)[i]]] <- gwas_result
+        cat(rep("\n", 2))
+        print(head(gwas_result))
+
+        return(gwas_result)
     }
 
     #######################################################################
@@ -236,13 +191,13 @@ farming_with_GAPIT <- function(dat,
     ## Save all GWAS Results
     #######################################################################
 
+    gwas_result_list = split(x = combined_gwas_result, f = combined_gwas_result$Trait)
     for (i in 1:length(gwas_result_list)) {
         gwas_result_filename <- paste("GAPIT.", names(gwas_result_list)[i], ".GWAS.Results.csv", sep = "")
         write.csv(gwas_result_list[[i]], file.path(GAPIT_significant_save_path, gwas_result_filename), row.names = FALSE)
     }
 
-    combined_gwas_result <- rbindlist(gwas_result_list)
-    combined_gwas_result <- as.data.frame(combined_gwas_result)
+    combined_gwas_result <- as.data.frame(combined_gwas_result, stringsAsFactors = FALSE)
     combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$LD_end), ]
     combined_gwas_result <- combined_gwas_result[order(combined_gwas_result$LD_start), ]
     # Order the table base on chromosome number which is on column 2 
@@ -254,7 +209,7 @@ farming_with_GAPIT <- function(dat,
     ## Everything is done, return combined_gwas_result
     #######################################################################
 
-    if(length(colnames(combined_gwas_result)) > fdr_target_column){
+    if(!is.null(combined_gwas_result) & is.data.frame(combined_gwas_result) & ncol(combined_gwas_result) >= 10){
         return(combined_gwas_result)
     } else{
         return(NULL)

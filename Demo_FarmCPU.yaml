@@ -39,12 +39,12 @@ GAPIT_model:
 # - SUPER
  - FarmCPU
 GAPIT_SNP_MAF: 0.05
-GAPIT_PCA_total: 3
-GAPIT_Model_selection: TRUE
+GAPIT_PCA_total: 0
+GAPIT_Model_selection: FALSE
 GAPIT_SNP_test: TRUE
 GAPIT_file_output: TRUE
-GAPIT_p_value_threshold:
-GAPIT_p_value_fdr_threshold: 0.05
+GAPIT_p_value_threshold: 4.67e-8
+GAPIT_p_value_fdr_threshold:
 GAPIT_LD_number: 100000
 
 #######################################################################

@@ -30,8 +30,9 @@ packages <- c("ape",
               "genetics", "gplots", "gridExtra",
               "lme4", "LDheatmap",
               "scatterplot3d",
-              "dplyr", "tidyr", "ggplot2",
-              "yaml")
+              "dplyr", "tidyr", "tibble", "ggplot2",
+              "yaml",
+              "foreach", "doParallel")
 
 # Check packages and install them if needed
 invisible(lapply(packages, FUN = function(x){
@@ -89,7 +90,7 @@ args <- commandArgs(trailingOnly = TRUE)
 
 
 #######################################################################
-## Help support
+## Help support and extra configuration
 #######################################################################
 
 # help is in args
@@ -98,9 +99,29 @@ if (any(c("-h", "-help", "--help") %in% args)) {
   quit(status = 0)
 }
 
+# set number of cores
+cores = 1
+if ("-cores" %in% args) {
+  index <- match("-cores", args)
 
+  cores = ifelse(!is.null(index) & !is.na(index) & !is.na(as.integer(index)) & !is.na(as.integer(args[as.integer(index)+1])), as.integer(args[as.integer(index)+1]),1)
+  cores = ifelse(!is.na(detectCores(logical = FALSE)) & cores > detectCores(logical = FALSE), detectCores(logical = FALSE), cores)
+
+}
+
+
+
+#######################################################################
+## Starting and initialization
+#######################################################################
 
 cat(rep("\n", 2));print("-------------------- GWAS1001 Start --------------------");cat(rep("\n", 2))
+
+registerDoParallel(cores = cores)
+
+cat(rep("\n", 2))
+print(paste("Number of cores will be used is ", getDoParWorkers(), sep = ""))
+cat(rep("\n", 2))
 
 
 
@@ -794,4 +815,12 @@ if (all("-searchGenes" %in% args)) {
 }
 
 
+
+#######################################################################
+## Ending and releasing resources
+#######################################################################
+
 cat(rep("\n", 2));print("-------------------- GWAS1001 Exit --------------------");cat(rep("\n", 2))
+
+stopImplicitCluster()
+

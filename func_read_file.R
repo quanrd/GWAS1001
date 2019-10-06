@@ -5,7 +5,7 @@ read_file <- function(file_path, header = TRUE){
       if (endsWith(file_path, ".csv")) {
         dat <- try(read.csv(file_path, header = header, stringsAsFactors = FALSE, check.names = FALSE))
       } else if (endsWith(file_path, ".txt")) {
-        dat <- try(read.table(file_path, header = header, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE))
+        dat <- try(read.table(file_path, header = header, sep = "\t", quote = "", stringsAsFactors = FALSE, check.names = FALSE))
       } else{
         # unknown file extension.
         return(NULL)

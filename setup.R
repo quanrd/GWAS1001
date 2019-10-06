@@ -32,8 +32,9 @@ packages <- c("ape",
               "genetics", "gplots", "gridExtra",
               "lme4", "LDheatmap",
               "scatterplot3d",
-              "dplyr", "tidyr", "ggplot2",
-              "yaml")
+              "dplyr", "tidyr", "tibble", "ggplot2",
+              "yaml",
+              "foreach", "doParallel")
 
 # Check packages and install them if needed
 invisible(lapply(packages, FUN = function(x){
