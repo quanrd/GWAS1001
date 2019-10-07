@@ -1,10 +1,10 @@
 
-## generate BLUP function
-generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
-  
+## generate BLUE function
+generate_BLUE <- function(dat, by_column = c(1, 2), start_column = 3){
+
   # Convert first column to character
   dat[,1] <- as.character(dat[,1])
-  
+
   # Convert the rest columns to numeric
   for (i in 2:ncol(dat)) {
     dat[,i] <- as.numeric(dat[,i])
@@ -18,8 +18,8 @@ generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
 
   # Create lmer formula
   if (length(by_column) > 0) {
-    termlabels <- c()
-    for (i in 1:length(by_column)) {
+    termlabels <- colnames(dat)[1]
+    for (i in 2:length(by_column)) {
       temp <- paste("(1|", colnames(dat)[i], ")", sep = "")
       termlabels <- c(termlabels, temp)
     }
@@ -84,8 +84,8 @@ generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
 
   # Create lmer formula
   if (length(by_column) > 0) {
-    termlabels <- c()
-    for (i in 1:length(by_column)) {
+    termlabels <- colnames(dat)[1]
+    for (i in 2:length(by_column)) {
       temp <- paste("(1|", colnames(dat)[i], ")", sep = "")
       termlabels <- c(termlabels, temp)
     }
@@ -96,7 +96,7 @@ generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
   # run transformation for each trait
   transformed_out <- apply(dat[,start_column:ncol(dat)], 2, FUN = function(x){
     lme <- lmer(formula = reformulate(termlabels = termlabels, response = "x"), data = dat, REML=TRUE)
-    powerTransform(lme, family="bcPower", lambda=c(-2, 2))
+    powerTransform(lme, family="bcnPower", lambda=c(-2, 2))
   })
 
   lambda <- list()
@@ -129,67 +129,60 @@ generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
   boxcox_transformed_dat = dat
 
   #######################################################################
-  ## generate BLUP
+  ## generate BLUE
   #######################################################################
 
   # Create lmer formula
   if (length(by_column) > 0) {
-    termlabels <- c()
-    for (i in 1:length(by_column)) {
+    termlabels <- colnames(dat)[1]
+    for (i in 2:length(by_column)) {
       temp <- paste("(1|", colnames(dat)[i], ")", sep = "")
       termlabels <- c(termlabels, temp)
     }
   }
 
+  blue = data.frame(stringsAsFactors = FALSE)
+
   # fit the model
-  BLUP_out <- apply(dat[,start_column:ncol(dat)], 2, FUN = function(x){
-    lme <- lmer(formula = reformulate(termlabels = termlabels, response = "x"), data = dat, REML=TRUE)
+  for(i in start_column:ncol(dat)){
+    lme <- lmer(formula = reformulate(termlabels = termlabels, response = colnames(dat)[i]), data = dat, REML=TRUE)
 
     # estimate BLUP
-    modelblup <- ranef(lme)
+    modelblue <- fixef(lme)
+    modelblue[2:length(modelblue)] = modelblue[2:length(modelblue)] + summary(lme)$coefficients[1]
+    modelblue = as.data.frame(modelblue, stringsAsFactors = FALSE)
+    colnames(modelblue)[1] = colnames(dat)[i]
 
-    # extract BLUP and add grand mean when only one repetition present
-    model_line_blup <- modelblup[[1]] + summary(lme)$coefficients[1]
-  })
+    modelblue = rownames_to_column(.data = modelblue, var = "Line")
 
-  if(length(BLUP_out) > 0){
-    for (i in 1:length(BLUP_out)) {
-      temp <- as.data.frame(BLUP_out[[i]])
-      temp$New <- row.names(temp)
-      temp$id <- names(BLUP_out)[i]
-      temp <- temp[,c(3, 2, 1)]
-      colnames(temp) <- c("id", "Line", "Intercept")
-      row.names(temp) <- seq(from = 1, to = nrow(temp), by = 1)
-      BLUP_out[[i]] <- temp
-
-      if(i==1){
-        BLUP_out_df <- BLUP_out[[i]]
-      } else{
-        BLUP_out_df <- rbind(BLUP_out_df, BLUP_out[[i]])
-      }
+    if(nrow(blue) == 0){
+      blue = modelblue
+    } else{
+      blue = blue %>% full_join(modelblue, by = "Line")
     }
-
-    blup <- dcast(BLUP_out_df, Line ~ id, value.var="Intercept")
-
-    colnames(blup)[1] <- colnames(dat)[1]
-    blup <- blup[order(as.numeric(gsub("[[:alpha:]]", "", blup[,1]))),]
-    row.names(blup) <- seq(from = 1, to = nrow(blup), by = 1)
 
   }
 
+  blue[,1] = sub("Line", "", blue[,1])
+
+  blue$Line[1] = dat$Line[which(!(unique(dat[,1]) %in% blue[,1]))]
+
+  blue <- blue[order(as.numeric(gsub("[[:alpha:]]", "", blue[,1]))),]
 
 
-  if(exists("blup")){
+
+  if(exists("blue")){
     return(
       list(
         "Outlier_removed_data" = outlier_removed_dat, "Outlier_data" = outlier_dat, "Outliers_residuals" = outliers_residuals,
         "Lambda_values" = lambda, "Boxcox_transformed_data" = boxcox_transformed_dat,
-        "BLUP" = blup
+        "BLUE" = blue
       )
     )
   } else{
     return(-1)
   }
-  
+
 }
+
 

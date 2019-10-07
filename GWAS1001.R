@@ -79,6 +79,7 @@ source("func_remove_duplicates.R")
 source("func_outlier_removal.R")
 source("func_boxcox_transformation.R")
 source("func_generate_BLUP.R")
+source("func_generate_BLUE.R")
 source("func_farming_with_GAPIT.R")
 source("func_extract_haplotype.R")
 source("func_search_genes.R")
@@ -585,93 +586,93 @@ cat(rep("\n", 2))
 ## Run action base on arguments
 #######################################################################
 
-# removeDuplicates
-if (all("-removeDuplicates" %in% args)) {
-  index <- match("-removeDuplicates", args)
-  print(paste(index, ": removeDuplicates", sep = ""))
-
-  if (exists("raw_data") & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-    folder_path <- file.path(output, "removeDuplicates")
-
-    if (!dir.exists(folder_path)) {
-      dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
-    } else{
-      print("The removeDuplicates folder exists.")
-    }
-
-    # Using customized function to remove duplicates
-    raw_data <- remove_duplicates(dat = raw_data, by_column = by_column)
-
-    write.csv(x = raw_data, file = file.path(folder_path, "raw_data.csv"), row.names = TRUE, na = "")
-  }
-}
-
-# outlierRemoval
-if (all("-outlierRemoval" %in% args)) {
-  index <- match("-outlierRemoval", args)
-  print(paste(index, ": outlierRemoval", sep = ""))
-
-  if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-    folder_path <- file.path(output, "outlierRemoval")
-
-    if (!dir.exists(folder_path)) {
-      dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
-    } else{
-      print("The outlierRemoval folder exists.")
-    }
-
-    # Using customized function to remove outliers
-    results <- outlier_removal(dat = raw_data, by_column = by_column, start_column = start_column)
-
-    if (is.list(results)) {
-      raw_data <- results$Outlier_removed_data
-
-      capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
-      write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
-      write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
-    } else{
-      raw_data <- results
-
-      write.csv(x = results, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
-      print("No outlier has been found!!!")
-    }
-
-  }
-}
-
-# boxcoxTransformation
-if (all("-boxcoxTransformation" %in% args)) {
-  index <- match("-boxcoxTransformation", args)
-  print(paste(index, ": boxcoxTransformation", sep = ""))
-
-  if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
-
-    folder_path <- file.path(output, "boxcoxTransformation")
-
-    if (!dir.exists(folder_path)) {
-      dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
-    } else{
-      print("The boxcoxTransformation folder exists.")
-    }
-
-    # Using customized function to perform box-cox transformation
-    results <- boxcox_transformation(dat = raw_data, by_column = by_column, start_column = start_column)
-
-    if (is.list(results)) {
-      raw_data <- results$Boxcox_transformed_data
-
-      write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
-      write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
-    } else{
-      raw_data <- results
-
-      print("No lambda found!!! Data returned without transformed!!!")
-    }
-
-  }
-}
+# # removeDuplicates
+# if (all("-removeDuplicates" %in% args)) {
+#   index <- match("-removeDuplicates", args)
+#   print(paste(index, ": removeDuplicates", sep = ""))
+#
+#   if (exists("raw_data") & exists("by_column") & exists("start_column") & dir.exists(output)) {
+#
+#     folder_path <- file.path(output, "removeDuplicates")
+#
+#     if (!dir.exists(folder_path)) {
+#       dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
+#     } else{
+#       print("The removeDuplicates folder exists.")
+#     }
+#
+#     # Using customized function to remove duplicates
+#     raw_data <- remove_duplicates(dat = raw_data, by_column = by_column)
+#
+#     write.csv(x = raw_data, file = file.path(folder_path, "raw_data.csv"), row.names = TRUE, na = "")
+#   }
+# }
+#
+# # outlierRemoval
+# if (all("-outlierRemoval" %in% args)) {
+#   index <- match("-outlierRemoval", args)
+#   print(paste(index, ": outlierRemoval", sep = ""))
+#
+#   if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+#
+#     folder_path <- file.path(output, "outlierRemoval")
+#
+#     if (!dir.exists(folder_path)) {
+#       dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
+#     } else{
+#       print("The outlierRemoval folder exists.")
+#     }
+#
+#     # Using customized function to remove outliers
+#     results <- outlier_removal(dat = raw_data, by_column = by_column, start_column = start_column)
+#
+#     if (is.list(results)) {
+#       raw_data <- results$Outlier_removed_data
+#
+#       capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
+#       write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
+#       write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
+#     } else{
+#       raw_data <- results
+#
+#       write.csv(x = results, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
+#       print("No outlier has been found!!!")
+#     }
+#
+#   }
+# }
+#
+# # boxcoxTransformation
+# if (all("-boxcoxTransformation" %in% args)) {
+#   index <- match("-boxcoxTransformation", args)
+#   print(paste(index, ": boxcoxTransformation", sep = ""))
+#
+#   if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+#
+#     folder_path <- file.path(output, "boxcoxTransformation")
+#
+#     if (!dir.exists(folder_path)) {
+#       dir.create(path = folder_path, showWarnings = TRUE, recursive = TRUE)
+#     } else{
+#       print("The boxcoxTransformation folder exists.")
+#     }
+#
+#     # Using customized function to perform box-cox transformation
+#     results <- boxcox_transformation(dat = raw_data, by_column = by_column, start_column = start_column)
+#
+#     if (is.list(results)) {
+#       raw_data <- results$Boxcox_transformed_data
+#
+#       write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
+#       write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
+#     } else{
+#       raw_data <- results
+#
+#       print("No lambda found!!! Data returned without transformed!!!")
+#     }
+#
+#   }
+# }
 
 # generateBLUP
 if (all("-generateBLUP" %in% args)) {
@@ -698,8 +699,50 @@ if (all("-generateBLUP" %in% args)) {
       BLUP_start_column <- 2
 
       write.csv( x = results$BLUP, file = file.path(folder_path, "BLUP.csv"), row.names = FALSE, na = "" )
+      write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
+      write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
+      capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
+      write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
+      write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
     } else{
       print("No BLUP generated!!!")
+    }
+
+  }
+}
+
+# generateBLUE
+if (all("-generateBLUE" %in% args)) {
+  index <- match("-generateBLUE", args)
+  print(paste(index, ": generateBLUE", sep = ""))
+
+  if (exists("raw_data") & !is.null(raw_data) & exists("by_column") & exists("start_column") & dir.exists(output)) {
+
+    folder_path <- file.path(output, "generateBLUE")
+
+    if (!dir.exists(folder_path)) {
+      dir.create( path = folder_path, showWarnings = TRUE, recursive = TRUE)
+    } else{
+      print("The generateBLUE folder exists.")
+    }
+
+    # Using customized function to generate BLUP
+    results <-
+      generate_BLUE(dat = raw_data, by_column = by_column, start_column = start_column)
+
+    if (is.list(results)) {
+      BLUP <- results$BLUE
+      BLUP_by_column <- 1
+      BLUP_start_column <- 2
+
+      write.csv( x = results$BLUE, file = file.path(folder_path, "BLUE.csv"), row.names = FALSE, na = "" )
+      write.csv(x = results$Lambda_values, file = file.path(folder_path, "Lambda_values.csv"), row.names = FALSE, na = "")
+      write.csv(x = results$Boxcox_transformed_data, file = file.path(folder_path, "Boxcox_transformed_data.csv"), row.names = FALSE, na = "")
+      capture.output( results$Outliers_residuals, file = file.path(folder_path, "Outliers_residuals.txt"))
+      write.csv(x = results$Outlier_data, file = file.path(folder_path, "Outlier_data.csv"), row.names = FALSE, na = "" )
+      write.csv( x = results$Outlier_removed_data, file = file.path(folder_path, "Outlier_removed_data.csv"), row.names = FALSE, na = "")
+    } else{
+      print("No BLUE generated!!!")
     }
 
   }
