@@ -7,13 +7,11 @@ A genome-wide association study (GWAS) tool written in R
 3. Rscript setup.R
 4. Rscript GWAS1001.R [COMMANDS]
    - COMMANDS:
-     - -removeDuplicates (optional)
-     - -outlierRemoval (optional)
-     - -boxcoxTransformation (optional)
-     - -generateBLUP (optional)
-     - -GAPIT (required)
-     - -extractHaplotype (optional)
-     - -searchGenes (optional)
+     - -generateBLUP
+     - -generateBLUE
+     - -GAPIT
+     - -extractHaplotype (optional, dependent on GAPIT parameter)
+     - -searchGenes (optional, dependent on GAPIT parameter)
 
 ## Upgrade Packages
 update.packages(ask=FALSE, checkBuilt = TRUE)
