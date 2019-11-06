@@ -145,6 +145,10 @@ generate_BLUE <- function(dat, by_column = c(1, 2), start_column = 3){
 
   # fit the model
   for(i in start_column:ncol(dat)){
+
+    dat[is.infinite(dat[,i]),i] = NA
+    dat[is.nan(dat[,i]),i] = NA
+
     lme <- lmer(formula = reformulate(termlabels = termlabels, response = colnames(dat)[i]), data = dat, REML=TRUE)
 
     # estimate BLUP

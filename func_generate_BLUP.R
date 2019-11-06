@@ -143,6 +143,10 @@ generate_BLUP <- function(dat, by_column = c(1, 2), start_column = 3){
 
   # fit the model
   BLUP_out <- apply(dat[,start_column:ncol(dat)], 2, FUN = function(x){
+
+    x[is.infinite(x)] = NA
+    x[is.nan(x)] = NA
+
     lme <- lmer(formula = reformulate(termlabels = termlabels, response = "x"), data = dat, REML=TRUE)
 
     # estimate BLUP
